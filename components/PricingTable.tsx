@@ -1,36 +1,64 @@
 "use client"
 
-import { Check } from "lucide-react"
-import Link from "next/link"
+import { useState } from "react"
+import { Check, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
+// TODO: Replace with your actual Stripe Price IDs
 const plans = [
   {
-    id: "free",
-    name: "Free",
-    price: "$0",
-    period: "/month",
-    description: "Perfect for trying out our screenshot copy generator",
-    features: ["3 generations/month", "English output", "5-slide default", "CSV/JSON export"],
-    cta: "Start free",
-    ctaHref: "/studio",
+    id: "credits_50",
+    name: "50 Credits",
+    price: "$5",
+    description: "Perfect for small projects and occasional use.",
+    features: ["50 generations", "One-time purchase", "Access to all features"],
+    cta: "Purchase Credits",
+    priceId: "price_1Pj9YkRpHK3nI4qHeC6a7g2g", // Replace with your actual Price ID from Stripe
     highlighted: false,
   },
   {
-    id: "pro",
-    name: "Pro",
-    price: "$29",
-    period: "/month",
-    description: "For professionals who need unlimited generations and advanced features",
-    features: ["Unlimited (fair use)", "3/5/7 slides", "A/B/C variants", "English + multilingual (coming soon)"],
-    cta: "Upgrade to Pro",
-    ctaHref: "/account",
+    id: "credits_250",
+    name: "250 Credits",
+    price: "$20",
+    description: "Best value for frequent users and larger projects.",
+    features: ["250 generations", "One-time purchase", "Access to all features", "Priority support"],
+    cta: "Purchase Credits",
+    priceId: "price_1Pj9ZWRpHK3nI4qHnQdKUKb3", // Replace with your actual Price ID from Stripe
     highlighted: true,
   },
 ]
 
 export function PricingTable() {
+  const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null)
+  const [error, setError] = useState("")
+
+  const handlePurchase = async (priceId: string) => {
+    setLoadingPriceId(priceId)
+    setError("")
+    try {
+      const res = await fetch("/api/provision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priceId }),
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to create checkout session.")
+      }
+
+      const { url } = await res.json()
+      if (url) {
+        window.location.href = url
+      } else {
+        throw new Error("Could not retrieve checkout URL.")
+      }
+    } catch (e: any) {
+      setError(e?.message ?? "An unknown error occurred.")
+      setLoadingPriceId(null)
+    }
+  }
+
   return (
     <div className="grid gap-8 lg:grid-cols-2">
       {plans.map((plan) => (
@@ -49,7 +77,6 @@ export function PricingTable() {
             <CardTitle className="text-2xl">{plan.name}</CardTitle>
             <div className="mt-4">
               <span className="text-4xl font-bold">{plan.price}</span>
-              <span className="text-muted-foreground">{plan.period}</span>
             </div>
             <CardDescription className="mt-4 leading-relaxed">{plan.description}</CardDescription>
           </CardHeader>
@@ -64,12 +91,22 @@ export function PricingTable() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Button className="w-full" variant={plan.highlighted ? "default" : "outline"} size="lg" asChild>
-              <Link href={plan.ctaHref}>{plan.cta}</Link>
+            <Button 
+              className="w-full"
+              variant={plan.highlighted ? "default" : "outline"} 
+              size="lg"
+              onClick={() => handlePurchase(plan.priceId)}
+              disabled={loadingPriceId === plan.priceId}
+            >
+              {loadingPriceId === plan.priceId ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {plan.cta}
             </Button>
           </CardFooter>
         </Card>
       ))}
+      {error && <p className="col-span-full text-center text-sm text-destructive">Error: {error}</p>}
     </div>
   )
 }

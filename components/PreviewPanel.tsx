@@ -1,156 +1,186 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FileJson, FileSpreadsheet } from "lucide-react"
-import { sampleSlides } from "@/lib/mock"
-
-interface Slide {
-  id: number
-  title: string
-  subtitle: string
-  callout: string
-}
+import { Badge } from "@/components/ui/badge"
+import { Copy, ThumbsUp, ThumbsDown } from "lucide-react"
+import type { Slide } from "@/app/studio/studio-client-page";
 
 interface PreviewPanelProps {
   slides: Slide[] | null
   isGenerating: boolean
+  screenshotUrl: string | null
+  generationId: string | null
 }
 
-export function PreviewPanel({ slides, isGenerating }: PreviewPanelProps) {
-  const [activeVariant, setActiveVariant] = useState<"variantA" | "variantB" | "variantC">("variantA")
+export function PreviewPanel({ slides, isGenerating, screenshotUrl, generationId }: PreviewPanelProps) {
+  const [activeSlideId, setActiveSlideId] = useState<string | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [ratedSlides, setRatedSlides] = useState<Record<number, number>>({});
 
-  // Use provided slides or sample slides based on variant
-  const displaySlides = slides || sampleSlides[activeVariant]
+  const generatePreview = async (headline: string, subtext: string) => {
+    if (!screenshotUrl) return;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = screenshotUrl;
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      ctx.font = 'bold 72px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+      ctx.fillStyle = 'white';
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 4;
+      ctx.textAlign = 'center';
+      const x = canvas.width / 2;
+      const y = 150;
+      ctx.strokeText(headline, x, y);
+      ctx.fillText(headline, x, y);
+      ctx.font = '48px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+      const ySub = y + 80;
+      ctx.strokeText(subtext, x, ySub);
+      ctx.fillText(subtext, x, ySub);
+      setPreviewImageUrl(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => {
+      console.error("Failed to load image for canvas preview.");
+    }
+  };
 
-  const handleExportCSV = () => {
-    // Mock CSV export
-    // In production: convert slides to CSV format and trigger download
-    console.log("[v0] Exporting to CSV:", displaySlides)
-    alert("CSV export would trigger here")
+  useEffect(() => {
+    if (slides && slides.length > 0) {
+      const firstSlideId = String(slides[0].id);
+      setActiveSlideId(firstSlideId);
+      handleTabChange(firstSlideId);
+      setRatedSlides({}); // Reset ratings for new generation
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slides]);
+
+  const handleTabChange = (slideId: string) => {
+    const slide = slides?.find(s => String(s.id) === slideId);
+    if (slide) {
+      setActiveSlideId(slideId);
+      generatePreview(slide.headline, slide.subtext);
+    }
   }
 
-  const handleExportJSON = () => {
-    // Mock JSON export
-    // In production: convert slides to JSON and trigger download
-    console.log("[v0] Exporting to JSON:", displaySlides)
-    alert("JSON export would trigger here")
-  }
+  const handleFeedback = async (slideId: number, rating: number) => {
+    if (!generationId || ratedSlides[slideId]) return;
+    setRatedSlides(prev => ({ ...prev, [slideId]: rating }));
+    await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        generationId,
+        copyIndex: slideId - 1,
+        rating 
+      }),
+    });
+  };
 
-  if (!slides && !isGenerating) {
+  const handleCopy = (text: string) => { navigator.clipboard.writeText(text); };
+
+  if (isGenerating) {
     return (
-      <div className="flex h-full min-h-[500px] items-center justify-center rounded-lg border border-dashed border-border/50 bg-muted/20">
-        <div className="text-center space-y-2">
-          <p className="text-muted-foreground text-lg">Your generated slides will appear here.</p>
-          <p className="text-sm text-muted-foreground">Fill out the form and click Generate Copy to start.</p>
+      <div className="flex h-full min-h-[600px] items-center justify-center rounded-lg border border-dashed bg-muted/20">
+        <div className="text-center space-y-4">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-accent border-r-transparent" role="status">
+            <span className="sr-only">Generating...</span>
+          </div>
+          <p className="text-muted-foreground">Analyzing screenshot and generating copy...</p>
         </div>
       </div>
     )
   }
-
-  if (isGenerating) {
+  
+  if (!slides || slides.length === 0) {
     return (
-      <div className="flex h-full min-h-[500px] items-center justify-center rounded-lg border border-border/50 bg-muted/20">
-        <div className="text-center space-y-4">
-          <div
-            className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-accent border-r-transparent"
-            role="status"
-          >
-            <span className="sr-only">Generating slides...</span>
-          </div>
-          <p className="text-muted-foreground">Generating your slides...</p>
+      <div className="flex h-full min-h-[600px] items-center justify-center rounded-lg border border-dashed bg-muted/20">
+        <div className="text-center space-y-2">
+          <p className="text-muted-foreground text-lg">Your generated slides will appear here.</p>
+          <p className="text-sm text-muted-foreground">Fill out the form to start.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Variant Toggle */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Variant:</span>
-          <div className="flex gap-1" role="group" aria-label="Slide variants">
-            <Button
-              variant={activeVariant === "variantA" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveVariant("variantA")}
-              aria-pressed={activeVariant === "variantA"}
-            >
-              A
-            </Button>
-            <Button
-              variant={activeVariant === "variantB" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveVariant("variantB")}
-              aria-pressed={activeVariant === "variantB"}
-            >
-              B
-            </Button>
-            <Button
-              variant={activeVariant === "variantC" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveVariant("variantC")}
-              aria-pressed={activeVariant === "variantC"}
-            >
-              C
-            </Button>
+    <div className="space-y-8">
+      {screenshotUrl && (
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight mb-4">Live Preview</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">Original</h3>
+              <img src={screenshotUrl} alt="Original screenshot" className="rounded-lg border" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">With Copy Applied</h3>
+              {previewImageUrl ? (
+                <img src={previewImageUrl} alt="Screenshot with generated copy" className="rounded-lg border" />
+              ) : (
+                <div className="aspect-[9/16] flex items-center justify-center rounded-lg border border-dashed bg-muted/20">
+                  <p className="text-sm text-muted-foreground">Select a headline to see preview</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Export Buttons */}
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportCSV}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" aria-hidden="true" />
-            Export CSV
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExportJSON}>
-            <FileJson className="mr-2 h-4 w-4" aria-hidden="true" />
-            Export JSON
-          </Button>
-        </div>
-      </div>
-
-      {/* Slides Tabs */}
-      <Tabs defaultValue="1" className="w-full">
-        <TabsList className="w-full justify-start overflow-x-auto" aria-label="Slide navigation">
-          {displaySlides.map((slide) => (
-            <TabsTrigger key={slide.id} value={String(slide.id)}>
-              Slide {slide.id}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {displaySlides.map((slide) => (
-          <TabsContent key={slide.id} value={String(slide.id)} className="mt-6">
-            <Card className="border-border/50">
-              <CardContent className="p-8 space-y-6">
-                {/* Title */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Title</label>
-                  <p className="text-2xl font-bold text-balance">{slide.title}</p>
-                </div>
-
-                {/* Subtitle */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Subtitle</label>
-                  <p className="text-lg text-muted-foreground leading-relaxed text-pretty">{slide.subtitle}</p>
-                </div>
-
-                {/* Callout */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Callout</label>
-                  <div className="inline-flex items-center rounded-full bg-accent/10 px-4 py-2 text-sm font-medium text-accent">
-                    {slide.callout}
+      )}
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight mb-4">Analysis & Results</h2>
+        <Tabs value={activeSlideId ?? undefined} onValueChange={handleTabChange} className="w-full">
+          <TabsList className="w-full justify-start overflow-x-auto">{slides.map(s => <TabsTrigger key={s.id} value={String(s.id)}>Headline {s.id}</TabsTrigger>)}</TabsList>
+          {slides.map((slide) => (
+            <TabsContent key={slide.id} value={String(slide.id)} className="mt-6">
+              <Card className="border-border/50">
+                <CardContent className="p-6 space-y-6">
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-bold">{slide.headline}</h3>
+                    <p className="text-lg text-muted-foreground">{slide.subtext}</p>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
-      </Tabs>
+                  <Button variant="outline" size="sm" onClick={() => handleCopy(slide.headline)}><Copy className="mr-2 h-4 w-4" /> Copy Headline</Button>
+                  <div className="mt-4 p-4 bg-accent/10 rounded-lg border border-accent/20">
+                    <h4 className="font-semibold mb-3 text-accent">Why This Works</h4>
+                    <p className="text-sm text-accent-foreground/80 mb-4">{slide.reasoning}</p>
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant="secondary">{slide.psychologicalTrigger}</Badge>
+                      <Badge variant="secondary">{slide.style}</Badge>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t">
+                      <p className="text-sm text-muted-foreground mb-2">Was this helpful?</p>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="icon" 
+                          variant={ratedSlides[slide.id] === 5 ? "default" : "outline"}
+                          onClick={() => handleFeedback(slide.id, 5)}
+                          disabled={!!ratedSlides[slide.id]}
+                        >
+                          <ThumbsUp className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          size="icon" 
+                          variant={ratedSlides[slide.id] === 1 ? "destructive" : "outline"}
+                          onClick={() => handleFeedback(slide.id, 1)}
+                          disabled={!!ratedSlides[slide.id]}
+                        >
+                          <ThumbsDown className="h-4 w-4" />
+                        </Button>
+                      </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          ))}
+        </Tabs>
+      </div>
     </div>
   )
 }

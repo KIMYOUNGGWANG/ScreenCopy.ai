@@ -1,12 +1,21 @@
+"use client"
+
 import { AccountCard } from "@/components/AccountCard"
 import { mockAccount } from "@/lib/mock"
-
-export const metadata = {
-  title: "Account | App Store Copy Generator",
-  description: "Manage your account settings and data",
-}
+import { useEffect } from "react";
+import { supaBrowser } from "@/lib/supa-browser";
 
 export default function AccountPage() {
+  const supa = supaBrowser();
+
+  useEffect(() => {
+    const { data: sub } = supa.auth.onAuthStateChange(async (e, session) => {
+      if (session?.user) {
+        await fetch("/api/provision", { method: "POST" }); // 최초 로그인 시 5크레딧
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [supa]);
   return (
     <div className="container py-12 md:py-20">
       <div className="mx-auto max-w-2xl">

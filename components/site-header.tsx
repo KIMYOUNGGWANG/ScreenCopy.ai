@@ -1,11 +1,20 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Moon, Sun, Menu } from "lucide-react"
+import Image from "next/image"
+import { usePathname, useRouter } from "next/navigation"
+import { Moon, Sun, Menu, LogOut, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { useState, useEffect } from "react"
+import { supaBrowser } from "@/lib/supa-browser"
+import type { User as SupabaseUser } from "@supabase/supabase-js"
+import logo from "@/public/placeholder-logo.svg"
+
+type SiteHeaderProps = {
+  /** When user is logged in, show remaining credits */
+  credits?: number | null
+}
 
 const navigation = [
   { name: "Home", href: "/" },
@@ -14,10 +23,13 @@ const navigation = [
   { name: "Account", href: "/account" },
 ]
 
-export function SiteHeader() {
+export function SiteHeader({ credits }: SiteHeaderProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [theme, setTheme] = useState<"light" | "dark">("dark")
   const [mounted, setMounted] = useState(false)
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [userCredits, setUserCredits] = useState<number | null>(credits ?? null)
 
   useEffect(() => {
     setMounted(true)
@@ -28,6 +40,54 @@ export function SiteHeader() {
     setTheme(initialTheme)
     document.documentElement.classList.toggle("dark", initialTheme === "dark")
   }, [])
+
+  useEffect(() => {
+    const supabase = supaBrowser()
+    
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+    })
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        // Fetch user credits when logged in
+        fetchUserCredits()
+      } else {
+        setUserCredits(null)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const fetchUserCredits = async () => {
+    try {
+      const supabase = supaBrowser()
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("credits")
+        .eq("id", user?.id)
+        .single()
+      
+      if (profile) {
+        setUserCredits(profile.credits)
+      }
+    } catch (error) {
+      console.error("Error fetching credits:", error)
+    }
+  }
+
+  const handleSignOut = async () => {
+    const supabase = supaBrowser()
+    await supabase.auth.signOut()
+    router.push("/")
+    router.refresh()
+  }
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light"
@@ -40,10 +100,8 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <nav className="container flex h-16 items-center justify-between" aria-label="Main navigation">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
-            <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center">
-              <span className="text-accent-foreground font-bold text-sm">ST</span>
-            </div>
+          <Link href="/" className="flex items-center gap-2 font-semibold text-lg" aria-label="Go to home">
+            <Image src={logo} alt="Screenshot Copy Logo" width={32} height={32} priority />
             <span className="hidden sm:inline-block">Studio</span>
           </Link>
 
@@ -56,6 +114,7 @@ export function SiteHeader() {
                   className={`text-sm font-medium transition-colors hover:text-accent ${
                     pathname === item.href ? "text-foreground" : "text-muted-foreground"
                   }`}
+                  aria-current={pathname === item.href ? "page" : undefined}
                 >
                   {item.name}
                 </Link>
@@ -64,7 +123,18 @@ export function SiteHeader() {
           </ul>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* Credits badge (only when user is logged in) */}
+          {user && typeof userCredits === "number" && (
+            <span
+              className="rounded-full border px-3 py-1 text-xs font-medium"
+              aria-label={`Credits available: ${userCredits}`}
+              title={`Credits: ${userCredits}`}
+            >
+              Credits: {userCredits}
+            </span>
+          )}
+
           {/* Theme Toggle */}
           <Button
             variant="ghost"
@@ -80,6 +150,40 @@ export function SiteHeader() {
               </>
             )}
           </Button>
+
+          {/* Auth buttons */}
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="relative">
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline-block ml-2">{user.email}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href="/account">
+                    <User className="mr-2 h-4 w-4" />
+                    Account
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/auth/signin">Sign In</Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link href="/auth/signup">Sign Up</Link>
+              </Button>
+            </div>
+          )}
 
           {/* Mobile Menu */}
           <DropdownMenu>
@@ -97,9 +201,6 @@ export function SiteHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button asChild className="hidden sm:inline-flex">
-            <Link href="/account">Get Started</Link>
-          </Button>
         </div>
       </nav>
     </header>

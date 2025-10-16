@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { PricingTable } from "@/components/PricingTable"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+
+export const metadata: Metadata = {
+  title: "Pricing | Screenshot Copy Generator",
+  description: "Choose a credit package that fits your needs. Start for free, then pay as you go.",
+};
 
 export default function PricingPage() {
   return (
