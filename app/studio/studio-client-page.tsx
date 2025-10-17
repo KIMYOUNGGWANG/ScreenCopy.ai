@@ -1,10 +1,32 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { PreviewPanel } from "@/components/PreviewPanel";
-import { WizardForm, type GenerateRequest } from "@/components/WizardForm";
+import dynamic from "next/dynamic"; // Import dynamic
+// import { PreviewPanel } from "@/components/PreviewPanel"; // Remove direct import
+// import { WizardForm, type GenerateRequest } from "@/components/WizardForm"; // Remove direct import
 import { uploadScreenshot } from "@/lib/upload";
 import { supaBrowser } from "@/lib/supa-browser";
+import { Loader2 } from "lucide-react"; // For loading state
+
+// Dynamically import PreviewPanel
+const DynamicPreviewPanel = dynamic(() => import("@/components/PreviewPanel").then((mod) => mod.PreviewPanel), {
+  loading: () => (
+    <div className="flex h-full min-h-[600px] items-center justify-center rounded-lg border border-dashed bg-muted/20">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  ),
+  ssr: false, // Ensure it's client-side rendered
+});
+
+// Dynamically import WizardForm
+const DynamicWizardForm = dynamic(() => import("@/components/WizardForm").then((mod) => mod.WizardForm), {
+  loading: () => (
+    <div className="flex h-[600px] items-center justify-center rounded-lg border border-dashed bg-muted/20">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  ),
+  ssr: false, // Ensure it's client-side rendered
+});
 
 // Updated Slide interface to match the new API response
 export interface Slide {
@@ -15,6 +37,9 @@ export interface Slide {
   psychologicalTrigger: string;
   reasoning: string;
 }
+
+// Re-export GenerateRequest type for use in handleGenerate
+export type { GenerateRequest } from "@/components/WizardForm";
 
 export default function StudioClientPage() {
   const [generatedSlides, setGeneratedSlides] = useState<Slide[] | null>(null);
@@ -107,13 +132,13 @@ export default function StudioClientPage() {
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Left Column: Wizard Form */}
           <div className="space-y-6">
-            <WizardForm onGenerate={handleGenerate} isGenerating={isGenerating} />
+            <DynamicWizardForm onGenerate={handleGenerate} isGenerating={isGenerating} />
             {err && <p className="text-sm text-destructive mt-4">{err}</p>}
           </div>
 
           {/* Right Column: Preview */}
           <div className="space-y-6">
-            <PreviewPanel 
+            <DynamicPreviewPanel 
               slides={generatedSlides} 
               isGenerating={isGenerating} 
               screenshotUrl={screenshotObjectUrl}

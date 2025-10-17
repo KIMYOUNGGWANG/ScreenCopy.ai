@@ -4,11 +4,11 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
-import { Toaster } from "@/components/ui/toaster"
+import { LazyClientComponents } from "@/components/LazyClientComponents"
 import { Suspense } from "react"
 import "./globals.css"
-import { supaServer } from "@/lib/supa"
+import { cookies } from "next/headers"
+import { createSupaServerClient } from "@/lib/supa"
 
 export const metadata: Metadata = {
   title: "Screenshot Copy - AI-Powered App Store Marketing",
@@ -19,7 +19,8 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const supa = await supaServer()
+  const cookieStore = cookies()
+  const supa = createSupaServerClient(cookieStore)
   const {
     data: { user },
   } = await supa.auth.getUser()
@@ -40,13 +41,8 @@ export default async function RootLayout({
           <main className="flex-1">
             <Suspense>{children}</Suspense>
           </main>
-          <Suspense>
-            <SiteFooter />
-          </Suspense>
+          <LazyClientComponents />
         </div>
-        <Suspense>
-          <Toaster />
-        </Suspense>
         <Analytics />
       </body>
     </html>

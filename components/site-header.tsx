@@ -27,12 +27,10 @@ export function SiteHeader({ credits }: SiteHeaderProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [theme, setTheme] = useState<"light" | "dark">("dark")
-  const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [userCredits, setUserCredits] = useState<number | null>(credits ?? null)
 
   useEffect(() => {
-    setMounted(true)
     // Check for saved theme preference or default to dark
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -56,7 +54,7 @@ export function SiteHeader({ credits }: SiteHeaderProps) {
       setUser(session?.user ?? null)
       if (session?.user) {
         // Fetch user credits when logged in
-        fetchUserCredits()
+        fetchUserCredits(session.user)
       } else {
         setUserCredits(null)
       }
@@ -65,13 +63,13 @@ export function SiteHeader({ credits }: SiteHeaderProps) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const fetchUserCredits = async () => {
+  const fetchUserCredits = async (user: SupabaseUser) => {
     try {
       const supabase = supaBrowser()
       const { data: profile } = await supabase
         .from("profiles")
         .select("credits")
-        .eq("id", user?.id)
+        .eq("id", user.id)
         .single()
       
       if (profile) {
@@ -101,7 +99,7 @@ export function SiteHeader({ credits }: SiteHeaderProps) {
       <nav className="container flex h-16 items-center justify-between" aria-label="Main navigation">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2 font-semibold text-lg" aria-label="Go to home">
-            <Image src={logo} alt="Screenshot Copy Logo" width={32} height={32} priority />
+            <Image src={logo} alt="Screenshot Copy Logo" width={32} height={32} priority className="h-8 w-8" />
             <span className="hidden sm:inline-block">Studio</span>
           </Link>
 
@@ -143,12 +141,10 @@ export function SiteHeader({ credits }: SiteHeaderProps) {
             aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
             className="h-9 w-9"
           >
-            {mounted && (
-              <>
-                <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              </>
-            )}
+            <>
+              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            </>
           </Button>
 
           {/* Auth buttons */}

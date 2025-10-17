@@ -73,7 +73,7 @@ export function WizardForm({ onGenerate, isGenerating }: WizardFormProps) {
       <CardHeader>
         <CardTitle>Step {step} of {TOTAL_STEPS}</CardTitle>
         <div className="w-full bg-muted rounded-full h-2 mt-2">
-          <div 
+          <div
             className="bg-accent h-2 rounded-full transition-all duration-300"
             style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
           ></div>
@@ -167,7 +167,8 @@ function Step3({ formData, setFormData }: StepProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Target Age</Label>
-          <Select value={formData.targetAudience.age} onValueChange={(v) => setAudience("age", v)}><SelectTrigger><SelectValue /></SelectTrigger>
+          <Select value={formData.targetAudience.age} onValueChange={(v) => setAudience("age", v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="13-17">13-17</SelectItem>
               <SelectItem value="18-24">18-24</SelectItem>
@@ -202,7 +203,7 @@ function Step3({ formData, setFormData }: StepProps) {
 function Step4({ formData, setFormData }: StepProps) {
   return (
     <div className="space-y-4 py-4">
-      <h2 className="text-xl font-semibold">What's Shown in This Screenshot?</h2>
+      <h2 className="text-xl font-semibold">What&apos;s Shown in This Screenshot?</h2>
       <div className="space-y-2">
         <Label>Feature Shown</Label>
         <Textarea value={formData.screenFeature} onChange={(e) => setFormData(prev => ({ ...prev, screenFeature: e.target.value }))} placeholder="e.g., Main dashboard with task list and calendar view." />

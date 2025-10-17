@@ -113,7 +113,7 @@ export default function SignUpPage() {
                 <div>
                   <h2 className="text-2xl font-bold">Check your email</h2>
                   <p className="text-muted-foreground mt-2">
-                    We've sent you a confirmation link at <strong>{email}</strong>
+                    We&apos;ve sent you a confirmation link at <strong>{email}</strong>
                   </p>
                   <p className="text-sm text-muted-foreground mt-4">
                     Click the link in the email to activate your account and get your 5 free credits!

@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { ArrowUp } from "lucide-react"
 import { useEffect, useState } from "react"
+import Link from "next/link"
 
 export default function TermsPage() {
   const [showBackToTop, setShowBackToTop] = useState(false)
@@ -71,7 +72,7 @@ export default function TermsPage() {
             <li>Generate content that is offensive, discriminatory, or harmful</li>
             <li>Attempt to reverse engineer or exploit our AI models</li>
             <li>Share your account credentials with others</li>
-            <li>Abuse the "fair use" policy on Pro plans through excessive automated requests</li>
+            <li>Abuse the &quot;fair use&quot; policy on Pro plans through excessive automated requests</li>
             <li>Violate any applicable laws or regulations</li>
           </ul>
         </section>
