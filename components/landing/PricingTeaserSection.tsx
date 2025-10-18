@@ -35,10 +35,7 @@ export function PricingTeaserSection() {
                   <Check className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span className="text-sm">All tone variations</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <Check className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" aria-hidden="true" />
-                  <span className="text-sm">CSV/JSON export</span>
-                </li>
+                
                 <li className="flex items-start gap-2">
                   <Check className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span className="text-sm">Basic support</span>
