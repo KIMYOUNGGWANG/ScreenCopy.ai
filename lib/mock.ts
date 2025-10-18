@@ -179,7 +179,7 @@ export const mockSlides = {
       id: 3,
       title: "Secure by Default",
       subtitle: "Enterprise-grade security features",
-      callout: "SOC 2 compliant",
+      callout: "Secure by Design",
     },
   ],
   persuasive: [
