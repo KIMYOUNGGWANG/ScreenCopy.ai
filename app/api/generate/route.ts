@@ -2,9 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { supaServer } from "@/lib/supa";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Initialize Upstash Redis and Rate Limiter
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+
+const ratelimit = new Ratelimit({
+  redis: redis,
+  limiter: Ratelimit.slidingWindow(5, "1 m"), // 5 requests per minute
+  analytics: true,
 });
 
 // Zod schema for validating the new, detailed request body
@@ -25,22 +39,30 @@ const GenerateRequestSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Authenticate user and check credits
+    // 1. Authenticate user
     const supabase = await supaServer();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // 2. Rate limit user
+    const { success } = await ratelimit.limit(user.id);
+    if (!success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
+    // 3. Check credits
     const { data: profile } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
     if (!profile || profile.credits < 1) {
       return NextResponse.json({ error: 'Insufficient credits' }, { status: 402 });
     }
 
-    // 2. Validate request body
+    // 4. Validate request body
     const body = await req.json();
     const input = GenerateRequestSchema.parse(body);
 
-    // 3. Construct the enhanced prompt
+    // 5. Construct the enhanced prompt
     const competitorsArray = input.competitors ? input.competitors.split(',').map(c => c.trim()) : [];
     const enhancedPrompt = `You are an expert App Store marketer who has helped apps achieve 50%+ conversion rate increases.
 
@@ -92,7 +114,7 @@ EXAMPLES OF GREAT APP STORE COPY:
 
 Now analyze the screenshot and create headlines that convert.`;
 
-    // 4. Call OpenAI API
+    // 6. Call OpenAI API
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -115,7 +137,7 @@ Now analyze the screenshot and create headlines that convert.`;
     }
     const generatedJson = JSON.parse(content);
 
-    // 5. Decrement credits and save generation
+    // 7. Decrement credits and save generation
     await supabase.from('profiles').update({ credits: profile.credits - 1 }).eq('id', user.id);
     
     const { data: generationData, error: generationError } = await supabase
