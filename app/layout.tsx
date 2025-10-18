@@ -41,6 +41,7 @@ export default async function RootLayout({
           <main className="flex-1">
             <Suspense>{children}</Suspense>
           </main>
+          <SiteFooter />
           <LazyClientComponents />
         </div>
         <Analytics />
