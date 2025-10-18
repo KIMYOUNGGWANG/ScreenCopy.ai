@@ -28,7 +28,7 @@ export default function HomePage() {
         <HowItWorksSection />
       </Suspense>
       <Suspense fallback={null}>
-        <SamplePreviewSection />
+        <SamplePreviewSection id="samples" />
       </Suspense>
       <Suspense fallback={null}>
         <PricingTeaserSection />

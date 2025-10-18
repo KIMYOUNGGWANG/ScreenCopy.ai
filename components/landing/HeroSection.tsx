@@ -27,10 +27,10 @@ export function HeroSection() {
             </Link>
           </Button>
           <Button size="lg" variant="outline" asChild>
-            <Link href="#demo">
-              <Play className="mr-2 h-4 w-4" aria-hidden="true" />
-              Watch demo
-            </Link>
+            <Link href="#samples">
+                <Play className="mr-2 h-4 w-4" aria-hidden="true" />
+                See samples
+              </Link>
           </Button>
         </div>
       </div>
