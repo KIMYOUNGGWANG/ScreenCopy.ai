@@ -50,7 +50,7 @@ export function PricingTeaserSection() {
             </CardContent>
           </Card>
 
-          {/* Pro Plan */}
+          {/* 250 Credits Pack */}
           <Card className="border-accent/50 relative">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
               <span className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
@@ -59,38 +59,34 @@ export function PricingTeaserSection() {
               </span>
             </div>
             <CardHeader>
-              <CardTitle className="text-2xl">Pro</CardTitle>
-              <CardDescription>For serious app developers</CardDescription>
+              <CardTitle className="text-2xl">250 Credits</CardTitle>
+              <CardDescription>Best value for frequent users.</CardDescription>
               <div className="mt-4">
                 <span className="text-4xl font-bold">$20</span>
-                <span className="text-muted-foreground">/month</span>
+                <span className="text-muted-foreground"> one-time</span>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <ul className="space-y-3" role="list">
                 <li className="flex items-start gap-2">
                   <Check className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" aria-hidden="true" />
-                  <span className="text-sm">100 credits per month</span>
+                  <span className="text-sm">250 generations</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" aria-hidden="true" />
-                  <span className="text-sm">All tone variations</span>
+                  <span className="text-sm">One-time purchase</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" aria-hidden="true" />
-                  <span className="text-sm">CSV/JSON export</span>
+                  <span className="text-sm">Access to all features</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span className="text-sm">Priority support</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <Check className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" aria-hidden="true" />
-                  <span className="text-sm">Custom tone training</span>
-                </li>
               </ul>
               <Button className="w-full" asChild>
-                <Link href="/pricing">Upgrade to Pro</Link>
+                <Link href="/pricing">Purchase Credits</Link>
               </Button>
             </CardContent>
           </Card>
