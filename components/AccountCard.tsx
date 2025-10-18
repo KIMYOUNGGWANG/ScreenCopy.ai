@@ -51,16 +51,11 @@ export function AccountCard({ plan, credits }: AccountCardProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Available Credits</p>
-              <p className="text-2xl font-bold mt-1">
-                {credits}
-                <span className="text-base font-normal text-muted-foreground ml-2">
-                  {plan === "free" ? "/ 3 per month" : "unlimited"}
-                </span>
-              </p>
+              <p className="text-3xl font-bold mt-1">{credits}</p>
             </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10" aria-hidden="true">
-              <span className="text-2xl font-bold text-accent">{credits}</span>
-            </div>
+            <Button asChild>
+              <Link href="/pricing">Purchase More</Link>
+            </Button>
           </div>
         </div>
 
