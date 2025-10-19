@@ -43,8 +43,8 @@ export default function TermsPage() {
             Our service provides AI-powered copy generation for App Store screenshots. We offer:
           </p>
           <ul className="list-disc pl-6 space-y-2 text-muted-foreground leading-relaxed">
-            <li>Free tier: 3 generations per month with basic features</li>
-            <li>Pro tier: Unlimited generations (fair use) with advanced features</li>
+            <li>Free: 3 free credits to try the service.</li>
+            <li>Paid: Purchase credit packs (e.g., 50 credits, 250 credits). No monthly subscription.</li>
             <li>Multiple tone options and slide configurations</li>
             <li>Export capabilities in CSV and JSON formats</li>
           </ul>

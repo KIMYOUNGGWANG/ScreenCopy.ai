@@ -56,8 +56,7 @@ export default function PrivacyPage() {
             </li>
           </ul>
           <p className="leading-relaxed text-muted-foreground mt-4">
-            We do <strong>not</strong> collect or store your app content, screenshots, or generated copy beyond the
-            active session.
+            We store your uploaded screenshots and generated copy in your account to provide history and export features. You can export or delete them anytime from the Account page.
           </p>
         </section>
 

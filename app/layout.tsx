@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { SiteHeader } from "@/components/site-header"
+import { SiteFooter } from "@/components/site-footer"
 import { LazyClientComponents } from "@/components/LazyClientComponents"
 import { Suspense } from "react"
 import "./globals.css"
@@ -19,8 +20,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const cookieStore = cookies()
-  const supa = createSupaServerClient(cookieStore)
+  const supa = createSupaServerClient()
   const {
     data: { user },
   } = await supa.auth.getUser()

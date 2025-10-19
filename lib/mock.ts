@@ -178,7 +178,7 @@ export const mockSlides = {
     {
       id: 3,
       title: "Secure by Default",
-      subtitle: "Enterprise-grade security features",
+      subtitle: "Private storage with signed URLs, RLS, and rate limiting.",
       callout: "Secure by Design",
     },
   ],
@@ -291,11 +291,7 @@ export const faqItems = [
     question: "Do you store my inputs?",
     answer: "We minimize data and let you delete anytime.",
   },
-  {
-    id: 3,
-    question: "Can I export to CSV/JSON?",
-    answer: "Yes—one click.",
-  },
+  
   {
     id: 4,
     question: "How do I test results?",

@@ -132,12 +132,36 @@ export default function StudioClientPage() {
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Left Column: Wizard Form */}
           <div className="space-y-6">
-            <DynamicWizardForm onGenerate={handleGenerate} isGenerating={isGenerating} />
+            <DynamicWizardForm 
+              onGenerate={handleGenerate} 
+              isGenerating={isGenerating} 
+              description="Generate compelling App Store screenshot copy in seconds. Follow the steps to create conversion-optimized titles and subtitles."
+            />
             {err && <p className="text-sm text-destructive mt-4">{err}</p>}
           </div>
 
           {/* Right Column: Preview */}
           <div className="space-y-6">
+            {generatedSlides && generatedSlides.length > 0 && (
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleExport("csv")}
+                  disabled={isGenerating}
+                >
+                  <Download className="mr-2 h-4 w-4" /> Export CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleExport("json")}
+                  disabled={isGenerating}
+                >
+                  <Download className="mr-2 h-4 w-4" /> Export JSON
+                </Button>
+              </div>
+            )}
             <DynamicPreviewPanel 
               slides={generatedSlides} 
               isGenerating={isGenerating} 

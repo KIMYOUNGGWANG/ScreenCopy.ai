@@ -19,7 +19,7 @@ export function PricingTeaserSection() {
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="text-2xl">Free</CardTitle>
-              <CardDescription>Perfect for trying it out</CardDescription>
+              <CardDescription>3 free credits to start</CardDescription>
               <div className="mt-4">
                 <span className="text-4xl font-bold">$0</span>
                 <span className="text-muted-foreground">/month</span>
