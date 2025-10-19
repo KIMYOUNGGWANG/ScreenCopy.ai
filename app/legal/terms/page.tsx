@@ -38,16 +38,10 @@ export default function TermsPage() {
         </section>
 
         <section className="mb-12">
-          <h2 className="text-2xl font-semibold mb-4">Service Description</h2>
-          <p className="leading-relaxed text-muted-foreground mb-4">
-            Our service provides AI-powered copy generation for App Store screenshots. We offer:
+          <h2 className="text-2xl font-semibold mb-4">Service Description & Billing</h2>
+          <p className="leading-relaxed text-muted-foreground">
+            We offer a free starter with 3 free credits and paid credit packs (e.g., 50 credits, 250 credits) as one-time purchases. We do not provide monthly subscriptions at this time. Payments are processed by Stripe.
           </p>
-          <ul className="list-disc pl-6 space-y-2 text-muted-foreground leading-relaxed">
-            <li>Free: 3 free credits to try the service.</li>
-            <li>Paid: Purchase credit packs (e.g., 50 credits, 250 credits). No monthly subscription.</li>
-            <li>Multiple tone options and slide configurations</li>
-            <li>Export capabilities in CSV and JSON formats</li>
-          </ul>
         </section>
 
         <section className="mb-12">
@@ -77,20 +71,7 @@ export default function TermsPage() {
           </ul>
         </section>
 
-        <section className="mb-12">
-          <h2 className="text-2xl font-semibold mb-4">Subscription and Billing</h2>
-          <p className="leading-relaxed text-muted-foreground mb-4">For Pro subscriptions:</p>
-          <ul className="list-disc pl-6 space-y-2 text-muted-foreground leading-relaxed">
-            <li>Billing is monthly and automatic</li>
-            <li>You can cancel anytime—subscriptions are month-to-month</li>
-            <li>Cancellations take effect at the end of the current billing period</li>
-            <li>No refunds for partial months</li>
-            <li>Prices may change with 30 days notice</li>
-          </ul>
-          <p className="leading-relaxed text-muted-foreground mt-4">
-            All payments are processed securely through Stripe.
-          </p>
-        </section>
+        
 
         <section className="mb-12">
           <h2 className="text-2xl font-semibold mb-4">Intellectual Property</h2>

@@ -20,10 +20,6 @@ export function PricingTeaserSection() {
             <CardHeader>
               <CardTitle className="text-2xl">Free</CardTitle>
               <CardDescription>3 free credits to start</CardDescription>
-              <div className="mt-4">
-                <span className="text-4xl font-bold">$0</span>
-                <span className="text-muted-foreground">/month</span>
-              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <ul className="space-y-3" role="list">
@@ -57,11 +53,7 @@ export function PricingTeaserSection() {
             </div>
             <CardHeader>
               <CardTitle className="text-2xl">250 Credits</CardTitle>
-              <CardDescription>Best value for frequent users.</CardDescription>
-              <div className="mt-4">
-                <span className="text-4xl font-bold">$20</span>
-                <span className="text-muted-foreground"> one-time</span>
-              </div>
+              <CardDescription>$20 one-time</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <ul className="space-y-3" role="list">
