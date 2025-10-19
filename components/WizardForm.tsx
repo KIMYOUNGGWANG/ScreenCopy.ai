@@ -136,7 +136,7 @@ function Step1({ setFormData }: StepProps) {
     <div className="space-y-4 py-4">
       <h2 className="text-xl font-semibold">Upload Your Screenshot</h2>
       <div className="space-y-2">
-        <Label htmlFor="screenshot">Screenshot File</Label>
+        <Label htmlFor="screenshot">Screenshot File *</Label>
         <Input
           id="screenshot"
           type="file"
@@ -153,11 +153,23 @@ function Step1({ setFormData }: StepProps) {
 
 // Step 2: App Info
 function Step2({ formData, setFormData }: StepProps) {
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+
+  const handleCategoryChange = (value: string) => {
+    if (value === "custom") {
+      setIsCustomCategory(true);
+      setFormData(prev => ({ ...prev, appCategory: "" })); // Clear category when switching to custom
+    } else {
+      setIsCustomCategory(false);
+      setFormData(prev => ({ ...prev, appCategory: value }));
+    }
+  };
+
   return (
     <div className="space-y-4 py-4">
       <h2 className="text-xl font-semibold">Tell Us About Your App</h2>
       <div className="space-y-2">
-        <Label htmlFor="appName">App Name</Label>
+        <Label htmlFor="appName">App Name *</Label>
         <Input
           id="appName"
           value={formData.appName}
@@ -167,25 +179,40 @@ function Step2({ formData, setFormData }: StepProps) {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="appCategory">App Category</Label>
-        <Select
-          value={formData.appCategory}
-          onValueChange={value =>
-            setFormData(prev => ({ ...prev, appCategory: value }))
-          }
-        >
-          <SelectTrigger id="appCategory">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="productivity">Productivity</SelectItem>
-            <SelectItem value="game">Game</SelectItem>
-            <SelectItem value="social">Social</SelectItem>
-            <SelectItem value="health">Health & Fitness</SelectItem>
-            <SelectItem value="finance">Finance</SelectItem>
-            <SelectItem value="education">Education</SelectItem>
-          </SelectContent>
-        </Select>
+        <Label htmlFor="appCategory">App Category *</Label>
+        {!isCustomCategory ? (
+          <Select
+            value={formData.appCategory}
+            onValueChange={handleCategoryChange}
+          >
+            <SelectTrigger id="appCategory">
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="productivity">Productivity</SelectItem>
+              <SelectItem value="game">Game</SelectItem>
+              <SelectItem value="social">Social</SelectItem>
+              <SelectItem value="health">Health & Fitness</SelectItem>
+              <SelectItem value="finance">Finance</SelectItem>
+              <SelectItem value="education">Education</SelectItem>
+              <SelectItem value="custom">Other (please specify)</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input
+            id="appCategory"
+            value={formData.appCategory}
+            onChange={e =>
+              setFormData(prev => ({ ...prev, appCategory: e.target.value }))
+            }
+            placeholder="Enter custom category"
+          />
+        )}
+        {isCustomCategory && (
+          <Button variant="link" onClick={() => setIsCustomCategory(false)} className="px-0">
+            Choose from list
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -302,7 +329,7 @@ function Step5({ formData, setFormData }: StepProps) {
     <div className="space-y-4 py-4">
       <h2 className="text-xl font-semibold">Choose Your Tone</h2>
       <div className="space-y-2">
-        <Label>Tone Preference</Label>
+        <Label>Tone Preference *</Label>
         <Select
           value={formData.tonePreference}
           onValueChange={value =>
