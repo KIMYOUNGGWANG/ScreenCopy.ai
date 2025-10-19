@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { supaBrowser } from "@/lib/supa-browser";
 import { User } from "@supabase/supabase-js";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Define a type for the profile data
 interface Profile {
