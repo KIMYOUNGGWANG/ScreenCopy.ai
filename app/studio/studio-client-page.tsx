@@ -6,7 +6,8 @@ import dynamic from "next/dynamic"; // Import dynamic
 // import { WizardForm, type GenerateRequest } from "@/components/WizardForm"; // Remove direct import
 import { uploadScreenshot } from "@/lib/upload";
 import { supaBrowser } from "@/lib/supa-browser";
-import { Loader2 } from "lucide-react"; // For loading state
+import { Button } from "@/components/ui/button"; // Add Button import
+import { Download, Loader2 } from "lucide-react"; // For loading state
 
 // Dynamically import PreviewPanel
 const DynamicPreviewPanel = dynamic(() => import("@/components/PreviewPanel").then((mod) => mod.PreviewPanel), {
@@ -83,8 +84,30 @@ export default function StudioClientPage() {
         return;
       }
       if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg || "Generation failed");
+        let errorData: any;
+        try {
+          errorData = await res.json(); // Try to parse as JSON
+        } catch {
+          errorData = { message: await res.text() }; // Fallback to text
+        }
+
+        // Check for specific error messages from the API
+        if (res.status === 429) {
+          setErr("Too many requests. Please try again in a minute.");
+          return;
+        }
+        if (res.status === 401) {
+          setErr("Unauthorized. Please sign in again.");
+          return;
+        }
+        if (errorData.error) { // Assuming API returns { error: "message" }
+          setErr(errorData.error);
+        } else if (errorData.message) { // Assuming API returns { message: "message" }
+          setErr(errorData.message);
+        } else {
+          setErr("Generation failed: An unknown error occurred.");
+        }
+        return; // Return after setting error, don't throw
       }
 
       const data = await res.json();
