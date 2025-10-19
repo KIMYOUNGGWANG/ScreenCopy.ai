@@ -47,10 +47,10 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Rate limit user
-    const { success } = await ratelimit.limit(user.id);
-    if (!success) {
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
-    }
+    // const { success } = await ratelimit.limit(user.id);
+    // if (!success) {
+    //   return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    // }
 
     // 3. Check credits
     const { data: profile } = await supabase.from('profiles').select('credits').eq('id', user.id).single();

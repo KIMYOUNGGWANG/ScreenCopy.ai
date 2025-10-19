@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Image from "next/image"
+import NextImage from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -120,14 +120,14 @@ export function PreviewPanel({ slides, isGenerating, screenshotUrl, generationId
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-muted-foreground">Original</h3>
               <div className="aspect-[9/16] w-full relative overflow-hidden rounded-lg border">
-                <Image src={screenshotUrl} alt="Original screenshot" fill className="object-contain" unoptimized />
+                <NextImage src={screenshotUrl} alt="Original screenshot" fill className="object-contain" unoptimized />
               </div>
             </div>
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-muted-foreground">With Copy Applied</h3>
               {previewImageUrl ? (
                 <div className="aspect-[9/16] w-full relative overflow-hidden rounded-lg border">
-                  <Image src={previewImageUrl} alt="Screenshot with generated copy" fill className="object-contain" unoptimized />
+                  <NextImage src={previewImageUrl} alt="Screenshot with generated copy" fill className="object-contain" unoptimized />
                 </div>
               ) : (
                 <div className="aspect-[9/16] flex items-center justify-center rounded-lg border border-dashed bg-muted/20">

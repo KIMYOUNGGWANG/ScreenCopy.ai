@@ -45,6 +45,7 @@ export function WizardForm({
   description,
 }: WizardFormProps) {
   const [step, setStep] = useState(1);
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [formData, setFormData] = useState<GenerateRequest>({
     screenshotFile: null,
     appName: "",
@@ -63,17 +64,19 @@ export function WizardForm({
   const nextStep = () => setStep(prev => Math.min(prev + 1, TOTAL_STEPS));
   const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
 
-  const handleSubmit = () => {
-    // TODO: Final validation before submitting
-    onGenerate(formData);
-  };
-
   const renderStep = () => {
     switch (step) {
       case 1:
         return <Step1 formData={formData} setFormData={setFormData} />;
       case 2:
-        return <Step2 formData={formData} setFormData={setFormData} />;
+        return (
+          <Step2
+            formData={formData}
+            setFormData={setFormData}
+            isCustomCategory={isCustomCategory}
+            setIsCustomCategory={setIsCustomCategory}
+          />
+        );
       case 3:
         return <Step3 formData={formData} setFormData={setFormData} />;
       case 4:
@@ -81,7 +84,50 @@ export function WizardForm({
       case 5:
         return <Step5 formData={formData} setFormData={setFormData} />;
       default:
-        return <Step1 formData={formData} setFormData={setFormData} />;
+        return null;
+    }
+  };
+  // const isStep2CustomCategoryEmpty =
+  //   step === 2 &&
+  //   formData.appCategory === "" &&
+  //   (formData.appCategory === "custom" ||
+  //     (formData.appCategory !== "productivity" &&
+  //       formData.appCategory !== "game" &&
+  //       formData.appCategory !== "social" &&
+  //       formData.appCategory !== "health" &&
+  //       formData.appCategory !== "finance" &&
+  //       formData.appCategory !== "education"));
+  const isStep2CustomCategoryEmpty =
+    step === 2 && isCustomCategory && formData.appCategory === "";
+
+  const handleSubmit = () => {
+    onGenerate(formData);
+  };
+
+  const isCurrentStepValid = () => {
+    switch (step) {
+      case 1:
+        return formData.screenshotFile !== null;
+      case 2:
+        return (
+          formData.appName.length > 0 &&
+          formData.appCategory.length > 0 &&
+          !isStep2CustomCategoryEmpty
+        );
+      case 3:
+        return (
+          formData.targetAudience.age.length > 0 &&
+          formData.targetAudience.occupation.length > 0 &&
+          formData.targetAudience.painPoint.length > 0
+        );
+      case 4:
+        return (
+          formData.screenFeature.length > 0 && formData.keyBenefit.length > 0
+        );
+      case 5:
+        return formData.tonePreference.length > 0;
+      default:
+        return false;
     }
   };
 
@@ -108,14 +154,17 @@ export function WizardForm({
             <ArrowLeft className="mr-2 h-4 w-4" /> Back
           </Button>
           {step === TOTAL_STEPS ? (
-            <Button onClick={handleSubmit} disabled={isGenerating}>
+            <Button
+              onClick={handleSubmit}
+              disabled={isGenerating || !isCurrentStepValid()}
+            >
               {isGenerating ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
               Generate Copy
             </Button>
           ) : (
-            <Button onClick={nextStep}>
+            <Button onClick={nextStep} disabled={!isCurrentStepValid()}>
               Next <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           )}
@@ -130,8 +179,13 @@ type StepProps = {
   setFormData: React.Dispatch<React.SetStateAction<GenerateRequest>>;
 };
 
+interface Step2Props extends StepProps {
+  isCustomCategory: boolean;
+  setIsCustomCategory: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
 // Step 1: Screenshot Upload
-function Step1({ setFormData }: StepProps) {
+function Step1({ formData, setFormData }: StepProps) {
   return (
     <div className="space-y-4 py-4">
       <h2 className="text-xl font-semibold">Upload Your Screenshot</h2>
@@ -152,8 +206,12 @@ function Step1({ setFormData }: StepProps) {
 }
 
 // Step 2: App Info
-function Step2({ formData, setFormData }: StepProps) {
-  const [isCustomCategory, setIsCustomCategory] = useState(false);
+function Step2({
+  formData,
+  setFormData,
+  isCustomCategory,
+  setIsCustomCategory,
+}: Step2Props) {
 
   const handleCategoryChange = (value: string) => {
     if (value === "custom") {
@@ -209,7 +267,11 @@ function Step2({ formData, setFormData }: StepProps) {
           />
         )}
         {isCustomCategory && (
-          <Button variant="link" onClick={() => setIsCustomCategory(false)} className="px-0">
+          <Button
+            variant="link"
+            onClick={() => setIsCustomCategory(false)}
+            className="px-0"
+          >
             Choose from list
           </Button>
         )}
@@ -234,7 +296,7 @@ function Step3({ formData, setFormData }: StepProps) {
       <h2 className="text-xl font-semibold">Who Is This For?</h2>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Target Age</Label>
+          <Label>Target Age *</Label>
           <Select
             value={formData.targetAudience.age}
             onValueChange={v => setAudience("age", v)}
@@ -252,7 +314,7 @@ function Step3({ formData, setFormData }: StepProps) {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Main User Type</Label>
+          <Label>Main User Type *</Label>
           <Select
             value={formData.targetAudience.occupation}
             onValueChange={v => setAudience("occupation", v)}
@@ -271,7 +333,9 @@ function Step3({ formData, setFormData }: StepProps) {
         </div>
       </div>
       <div className="space-y-2">
-        <Label>What problem does this solve for them? (Their Pain Point)</Label>
+        <Label>
+          What problem does this solve for them? (Their Pain Point) *
+        </Label>
         <Textarea
           value={formData.targetAudience.painPoint}
           onChange={e => setAudience("painPoint", e.target.value)}
@@ -290,7 +354,7 @@ function Step4({ formData, setFormData }: StepProps) {
         What&apos;s Shown in This Screenshot?
       </h2>
       <div className="space-y-2">
-        <Label>Feature Shown</Label>
+        <Label>Feature Shown *</Label>
         <Textarea
           value={formData.screenFeature}
           onChange={e =>
@@ -300,7 +364,7 @@ function Step4({ formData, setFormData }: StepProps) {
         />
       </div>
       <div className="space-y-2">
-        <Label>Key Benefit to Highlight</Label>
+        <Label>Key Benefit to Highlight *</Label>
         <Input
           value={formData.keyBenefit}
           onChange={e =>

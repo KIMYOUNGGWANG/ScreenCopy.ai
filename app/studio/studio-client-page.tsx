@@ -8,6 +8,7 @@ import { uploadScreenshot } from "@/lib/upload";
 import { supaBrowser } from "@/lib/supa-browser";
 import { Button } from "@/components/ui/button"; // Add Button import
 import { Download, Loader2 } from "lucide-react"; // For loading state
+import { useToast } from "@/hooks/use-toast"; // Add useToast
 
 // Dynamically import PreviewPanel
 const DynamicPreviewPanel = dynamic(() => import("@/components/PreviewPanel").then((mod) => mod.PreviewPanel), {
@@ -48,6 +49,7 @@ export default function StudioClientPage() {
   const [err, setErr] = useState("");
   const [screenshotObjectUrl, setScreenshotObjectUrl] = useState<string | null>(null);
   const [generationId, setGenerationId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const handleGenerate = async (formData: GenerateRequest) => {
     if (!formData.screenshotFile) {
@@ -133,6 +135,52 @@ export default function StudioClientPage() {
     }
   };
 
+  const handleExport = (format: "csv" | "json") => {
+    if (!generatedSlides || generatedSlides.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "Generate some copy first!",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let dataStr = "";
+    let filename = `generated_copy.${format}`;
+    let mimeType = "";
+
+    if (format === "json") {
+      dataStr = JSON.stringify(generatedSlides, null, 2);
+      mimeType = "application/json";
+    } else if (format === "csv") {
+      const headers = ["id", "headline", "subtext", "style", "psychologicalTrigger", "reasoning"];
+      const csvRows = generatedSlides.map(slide =>
+        headers.map(header => {
+          const value = (slide as any)[header];
+          // Escape double quotes and wrap in double quotes if value contains comma or double quote
+          return `"${String(value).replace(/"/g, '""')}"`;
+        }).join(",")
+      );
+      dataStr = [headers.join(","), ...csvRows].join("\n");
+      mimeType = "text/csv";
+    }
+
+    const blob = new Blob([dataStr], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: `Exported to ${format.toUpperCase()}`,
+      description: `Your generated copy has been downloaded as ${filename}.`,
+    });
+  };
+
   // Clean up the object URL to prevent memory leaks
   useEffect(() => {
     return () => {
@@ -197,4 +245,3 @@ export default function StudioClientPage() {
     </div>
   );
 }
-
