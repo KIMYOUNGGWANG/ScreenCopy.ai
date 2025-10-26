@@ -23,7 +23,7 @@ const footerLinks = {
 export function SiteFooter() {
   return (
     <footer className="border-t border-border bg-card" role="contentinfo">
-      <div className="container py-12 md:py-16">
+      <div className="container mx-auto py-12 md:py-16">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 font-semibold text-lg mb-4">

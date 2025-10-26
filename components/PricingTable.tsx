@@ -8,22 +8,22 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 // TODO: Replace with your actual Stripe Price IDs
 const plans = [
   {
-    id: "credits_50",
-    name: "50 Credits",
-    price: "$5",
+    id: "launch_pack",
+    name: "Launch Pack",
+    price: "$5/mo",
     description: "Perfect for small projects and occasional use.",
-    features: ["50 generations", "One-time purchase", "Access to all features"],
-    cta: "Purchase Credits",
+    features: ["50 generations per month", "1-month credit rollover", "Access to all features"],
+    cta: "Subscribe",
     priceId: "price_1Pj9YkRpHK3nI4qHeC6a7g2g", // Replace with your actual Price ID from Stripe
     highlighted: false,
   },
   {
-    id: "credits_250",
-    name: "250 Credits",
-    price: "$20",
+    id: "update_pack",
+    name: "Update Pack",
+    price: "$20/mo",
     description: "Best value for frequent users and larger projects.",
-    features: ["250 generations", "One-time purchase", "Access to all features", "Priority support"],
-    cta: "Purchase Credits",
+    features: ["250 generations per month", "1-month credit rollover", "Access to all features", "Priority support"],
+    cta: "Subscribe",
     priceId: "price_1Pj9ZWRpHK3nI4qHnQdKUKb3", // Replace with your actual Price ID from Stripe
     highlighted: true,
   },

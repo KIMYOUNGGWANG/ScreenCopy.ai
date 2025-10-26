@@ -2,7 +2,7 @@ import { howItWorksSteps } from "@/lib/mock"
 
 export function HowItWorksSection() {
   return (
-    <section className="container py-20 md:py-32">
+    <section className="container w-full mx-auto py-20 md:py-32 px-4">
       <div className="mx-auto max-w-4xl">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4 text-balance">How it works</h2>

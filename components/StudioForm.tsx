@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2 } from "lucide-react"
 
 interface StudioFormProps {
@@ -16,12 +17,24 @@ interface StudioFormProps {
 export interface FormData {
   appDescription: string
   targetAudience: string
+  hypothesisTags: {
+    socialProof: boolean
+    stability: boolean
+    price: boolean
+    speed: boolean
+  }
 }
 
 export function StudioForm({ onGenerate, isGenerating }: StudioFormProps) {
   const [formData, setFormData] = useState<FormData>({
     appDescription: "",
     targetAudience: "",
+    hypothesisTags: {
+      socialProof: false,
+      stability: false,
+      price: false,
+      speed: false,
+    },
   })
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
@@ -43,11 +56,21 @@ export function StudioForm({ onGenerate, isGenerating }: StudioFormProps) {
     onGenerate(formData)
   }
 
-  const updateField = (field: keyof FormData, value: string) => {
+  const updateField = (field: keyof Omit<FormData, 'hypothesisTags'>, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }))
     }
+  }
+
+  const updateTag = (tag: keyof FormData['hypothesisTags'], value: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      hypothesisTags: {
+        ...prev.hypothesisTags,
+        [tag]: value,
+      },
+    }))
   }
 
   return (
@@ -84,6 +107,45 @@ export function StudioForm({ onGenerate, isGenerating }: StudioFormProps) {
           value={formData.targetAudience}
           onChange={(e) => updateField("targetAudience", e.target.value)}
         />
+      </div>
+
+      {/* Hypothesis Tags */}
+      <div className="space-y-2">
+        <Label>Hypothesis Tags <span className="text-muted-foreground text-sm">(optional)</span></Label>
+        <div className="grid grid-cols-2 gap-4 pt-2">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="socialProof"
+              checked={formData.hypothesisTags.socialProof}
+              onCheckedChange={(checked) => updateTag("socialProof", checked as boolean)}
+            />
+            <Label htmlFor="socialProof" className="font-normal">Social Proof</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="stability"
+              checked={formData.hypothesisTags.stability}
+              onCheckedChange={(checked) => updateTag("stability", checked as boolean)}
+            />
+            <Label htmlFor="stability" className="font-normal">Stability</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="price"
+              checked={formData.hypothesisTags.price}
+              onCheckedChange={(checked) => updateTag("price", checked as boolean)}
+            />
+            <Label htmlFor="price" className="font-normal">Price</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="speed"
+              checked={formData.hypothesisTags.speed}
+              onCheckedChange={(checked) => updateTag("speed", checked as boolean)}
+            />
+            <Label htmlFor="speed" className="font-normal">Speed</Label>
+          </div>
+        </div>
       </div>
 
       {/* Submit Button */}

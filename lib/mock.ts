@@ -162,84 +162,84 @@ export const accountSections = [
 ]
 
 export const mockSlides = {
-  neutral: [
+  "Social Proof": [
     {
       id: 1,
-      title: "Track Your Progress",
-      subtitle: "View detailed analytics and insights",
-      callout: "Real-time updates",
+      title: "Trusted by 50,000+ Teams",
+      subtitle: "Join the growing community of businesses building better products.",
+      callout: "Top Rated App",
     },
     {
       id: 2,
-      title: "Collaborate Seamlessly",
-      subtitle: "Work together with your team",
-      callout: "Built-in chat",
+      title: "The #1 Choice for Developers",
+      subtitle: "Rated 4.9/5 stars on G2 and Product Hunt.",
+      callout: "Industry Leader",
     },
     {
       id: 3,
-      title: "Secure by Default",
-      subtitle: "Private storage with signed URLs, RLS, and rate limiting.",
-      callout: "Secure by Design",
+      title: "Featured in TechCrunch & Forbes",
+      subtitle: "See why top publications are talking about us.",
+      callout: "As Seen On",
     },
   ],
-  persuasive: [
+  "Urgency": [
     {
       id: 1,
-      title: "Boost Productivity by 3x",
-      subtitle: "Join 10,000+ teams saving 15 hours per week",
-      callout: "Proven results",
+      title: "Limited Time Offer: 50% Off",
+      subtitle: "Upgrade today and get access to all premium features.",
+      callout: "Ends Friday!",
     },
     {
       id: 2,
-      title: "Never Miss a Deadline",
-      subtitle: "Smart reminders keep your team on track",
-      callout: "98% on-time rate",
+      title: "Your Pro Trial is Ending",
+      subtitle: "Don't lose access to your projects and premium features.",
+      callout: "Upgrade Now",
     },
     {
       id: 3,
-      title: "Your Data, Fully Protected",
-      subtitle: "Bank-level encryption trusted by Fortune 500",
-      callout: "Zero breaches",
+      title: "Last Chance to Join!",
+      subtitle: "The cohort is almost full. Secure your spot today.",
+      callout: "Spots Filling Fast",
     },
   ],
-  humorous: [
+  "Simplicity": [
     {
       id: 1,
-      title: "Finally, a Dashboard That Makes Sense",
-      subtitle: "No PhD required to understand your metrics",
-      callout: "Seriously simple",
+      title: "Setup in 5 Minutes",
+      subtitle: "Get started with just a few clicks. No credit card required.",
+      callout: "Effortless Setup",
     },
     {
       id: 2,
-      title: "Meetings? We Don't Know Her",
-      subtitle: "Async collaboration that actually works",
-      callout: "Reclaim your calendar",
+      title: "The Easiest Way to Manage Projects",
+      subtitle: "An intuitive interface designed for everyone.",
+      callout: "No Learning Curve",
     },
     {
       id: 3,
-      title: "Fort Knox Called, They're Jealous",
-      subtitle: "Security so tight, even we can't peek",
-      callout: "Trust us (literally)",
+      title: "One-Click Automations",
+      subtitle: "Save hours of manual work with our powerful automations.",
+      callout: "Work Smarter",
     },
   ],
-  premium: [
+  "Quality": [
     {
       id: 1,
-      title: "Precision Analytics",
-      subtitle: "Sophisticated insights for discerning teams",
-      callout: "Executive-ready",
+      title: "Built for Performance",
+      subtitle: "Experience a blazing fast and reliable platform.",
+      callout: "99.9% Uptime",
     },
     {
       id: 2,
-      title: "Orchestrated Collaboration",
-      subtitle: "Seamless coordination across global teams",
-      callout: "Enterprise-grade",
+      title: "Enterprise-Grade Security",
+      subtitle: "Your data is safe with our robust security measures.",
+      callout: "SOC 2 Certified",
     },
     {
       id: 3,
-      title: "Uncompromising Security",
-      subtitle: "Military-grade protection for your assets",
-      callout: "Certified excellence",
+      title: "Pixel-Perfect Design",
+      subtitle: "Crafted with attention to every detail.",
+      callout: "Beautifully Designed",
     },
   ],
 }

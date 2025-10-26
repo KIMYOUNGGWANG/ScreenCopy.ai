@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export function PricingTeaserSection() {
   return (
-    <section className="container py-20 md:py-32">
+    <section className="container w-full mx-auto py-20 md:py-32 px-4">
       <div className="mx-auto max-w-5xl">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4 text-balance">
@@ -43,7 +43,7 @@ export function PricingTeaserSection() {
             </CardContent>
           </Card>
 
-          {/* 250 Credits Pack */}
+          {/* Update Pack */}
           <Card className="border-accent/50 relative">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
               <span className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
@@ -52,18 +52,18 @@ export function PricingTeaserSection() {
               </span>
             </div>
             <CardHeader>
-              <CardTitle className="text-2xl">250 Credits</CardTitle>
-              <CardDescription>$20 one-time</CardDescription>
+              <CardTitle className="text-2xl">Update Pack</CardTitle>
+              <CardDescription>$20/mo</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <ul className="space-y-3" role="list">
                 <li className="flex items-start gap-2">
                   <Check className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" aria-hidden="true" />
-                  <span className="text-sm">250 generations</span>
+                  <span className="text-sm">250 generations per month</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" aria-hidden="true" />
-                  <span className="text-sm">One-time purchase</span>
+                  <span className="text-sm">1-month credit rollover</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" aria-hidden="true" />
@@ -75,7 +75,7 @@ export function PricingTeaserSection() {
                 </li>
               </ul>
               <Button className="w-full" asChild>
-                <Link href="/pricing">Purchase Credits</Link>
+                <Link href="/pricing">Subscribe</Link>
               </Button>
             </CardContent>
           </Card>

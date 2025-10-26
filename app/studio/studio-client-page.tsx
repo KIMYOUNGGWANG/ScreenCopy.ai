@@ -1,36 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import dynamic from "next/dynamic"; // Import dynamic
-// import { PreviewPanel } from "@/components/PreviewPanel"; // Remove direct import
-// import { WizardForm, type GenerateRequest } from "@/components/WizardForm"; // Remove direct import
+import { useEffect } from "react";
+import dynamic from "next/dynamic";
 import { uploadScreenshot } from "@/lib/upload";
 import { supaBrowser } from "@/lib/supa-browser";
-import { Button } from "@/components/ui/button"; // Add Button import
-import { Download, Loader2 } from "lucide-react"; // For loading state
-import { useToast } from "@/hooks/use-toast"; // Add useToast
+import { Button } from "@/components/ui/button";
+import { Download, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useStudioStore } from "@/lib/store";
+import type { GenerateRequest } from "@/components/WizardForm";
+import { WizardFormSkeleton } from "@/components/WizardFormSkeleton";
+import { PreviewPanelSkeleton } from "@/components/PreviewPanelSkeleton";
+import { EmptyPreviewPanel } from "@/components/EmptyPreviewPanel";
 
-// Dynamically import PreviewPanel
+// Dynamically import components
 const DynamicPreviewPanel = dynamic(() => import("@/components/PreviewPanel").then((mod) => mod.PreviewPanel), {
-  loading: () => (
-    <div className="flex h-full min-h-[600px] items-center justify-center rounded-lg border border-dashed bg-muted/20">
-      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-    </div>
-  ),
-  ssr: false, // Ensure it's client-side rendered
+  loading: () => <PreviewPanelSkeleton />,
+  ssr: false,
 });
 
-// Dynamically import WizardForm
 const DynamicWizardForm = dynamic(() => import("@/components/WizardForm").then((mod) => mod.WizardForm), {
-  loading: () => (
-    <div className="flex h-[600px] items-center justify-center rounded-lg border border-dashed bg-muted/20">
-      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-    </div>
-  ),
-  ssr: false, // Ensure it's client-side rendered
+  loading: () => <WizardFormSkeleton />,
+  ssr: false,
 });
 
-// Updated Slide interface to match the new API response
 export interface Slide {
   id: number;
   headline: string;
@@ -40,38 +33,54 @@ export interface Slide {
   reasoning: string;
 }
 
-// Re-export GenerateRequest type for use in handleGenerate
-export type { GenerateRequest } from "@/components/WizardForm";
-
 export default function StudioClientPage() {
-  const [generatedSlides, setGeneratedSlides] = useState<Slide[] | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [err, setErr] = useState("");
-  const [screenshotObjectUrl, setScreenshotObjectUrl] = useState<string | null>(null);
-  const [generationId, setGenerationId] = useState<string | null>(null);
   const { toast } = useToast();
+  const {
+    generatedSlides,
+    isGenerating,
+    startGeneration,
+    setGeneratedData,
+    setGenerationError,
+    resetState,
+  } = useStudioStore();
+
+  // Reset store on unmount
+  useEffect(() => {
+    return () => {
+      resetState();
+    };
+  }, [resetState]);
 
   const handleGenerate = async (formData: GenerateRequest) => {
     if (!formData.screenshotFile) {
-      setErr("Screenshot file is missing.");
+      toast({ title: "Generation Failed", description: "Screenshot file is missing.", variant: "destructive" });
+      setGenerationError("Screenshot file is missing.");
       return;
     }
 
-    // Create a temporary local URL for the image for instant preview
-    const objectUrl = URL.createObjectURL(formData.screenshotFile);
-    setScreenshotObjectUrl(objectUrl);
+    const generationToastId = toast({
+      title: "Generating Copy",
+      description: "Please wait while we generate your marketing copy...",
+      duration: 999999, // Indefinite duration
+    });
+
+    startGeneration(formData.screenshotFile);
 
     try {
-      setIsGenerating(true);
-      setErr("");
-      setGenerationId(null); // Reset generation ID on new request
-
       const supabase = supaBrowser();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated.");
+      if (!user) {
+        toast.dismiss(generationToastId.id);
+        toast({ title: "Generation Failed", description: "User not authenticated. Please sign in.", variant: "destructive" });
+        throw new Error("User not authenticated.");
+      }
 
       const screenshotUrl = await uploadScreenshot(formData.screenshotFile, user.id);
-      if (!screenshotUrl) throw new Error("Failed to upload screenshot.");
+      if (!screenshotUrl) {
+        toast.dismiss(generationToastId.id);
+        toast({ title: "Generation Failed", description: "Failed to upload screenshot.", variant: "destructive" });
+        throw new Error("Failed to upload screenshot.");
+      }
 
       const payload = { ...formData, screenshotUrl, competitors: formData.competitors || "" };
 
@@ -82,41 +91,25 @@ export default function StudioClientPage() {
       });
 
       if (res.status === 402) {
-        setErr("Not enough credits. Please upgrade on the Pricing page.");
+        toast.dismiss(generationToastId.id);
+        toast({ title: "Generation Failed", description: "Not enough credits. Please upgrade on the Pricing page.", variant: "destructive" });
+        setGenerationError("Not enough credits. Please upgrade on the Pricing page.");
         return;
       }
       if (!res.ok) {
-        let errorData: any;
-        try {
-          errorData = await res.json(); // Try to parse as JSON
-        } catch {
-          errorData = { message: await res.text() }; // Fallback to text
-        }
-
-        // Check for specific error messages from the API
-        if (res.status === 429) {
-          setErr("Too many requests. Please try again in a minute.");
-          return;
-        }
-        if (res.status === 401) {
-          setErr("Unauthorized. Please sign in again.");
-          return;
-        }
-        if (errorData.error) { // Assuming API returns { error: "message" }
-          setErr(errorData.error);
-        } else if (errorData.message) { // Assuming API returns { message: "message" }
-          setErr(errorData.message);
-        } else {
-          setErr("Generation failed: An unknown error occurred.");
-        }
-        return; // Return after setting error, don't throw
+        toast.dismiss(generationToastId.id);
+        const errorData = await res.json().catch(() => ({ message: res.statusText }));
+        let errorMessage = "Generation failed: An unknown error occurred.";
+        if (res.status === 429) errorMessage = "Too many requests. Please try again in a minute.";
+        if (res.status === 401) errorMessage = "Unauthorized. Please sign in again.";
+        if (errorData.error || errorData.message) errorMessage = errorData.error || errorData.message;
+        
+        toast({ title: "Generation Failed", description: errorMessage, variant: "destructive" });
+        throw new Error(errorMessage);
       }
 
       const data = await res.json();
       
-      setGenerationId(data.generationId);
-
-      // Updated mapping to match the new API response structure
       const resultSlides: Slide[] = (data.copies || []).map((opt: any, idx: number) => ({
         id: idx + 1,
         headline: opt.headline,
@@ -126,22 +119,20 @@ export default function StudioClientPage() {
         reasoning: opt.reasoning,
       }));
 
-      setGeneratedSlides(resultSlides);
+      setGeneratedData({ slides: resultSlides, generationId: data.generationId });
+      toast.dismiss(generationToastId.id);
+      toast({ title: "Generation Successful!", description: "Your marketing copy has been generated.", variant: "success" });
     } catch (e: any) {
+      toast.dismiss(generationToastId.id);
       console.error(e);
-      setErr(e?.message ?? "Something went wrong while generating.");
-    } finally {
-      setIsGenerating(false);
+      setGenerationError(e?.message ?? "Something went wrong while generating.");
+      toast({ title: "Generation Failed", description: e?.message ?? "Something went wrong while generating.", variant: "destructive" });
     }
   };
 
   const handleExport = (format: "csv" | "json") => {
     if (!generatedSlides || generatedSlides.length === 0) {
-      toast({
-        title: "No data to export",
-        description: "Generate some copy first!",
-        variant: "destructive",
-      });
+      toast({ title: "No data to export", description: "Generate some copy first!", variant: "destructive" });
       return;
     }
 
@@ -152,14 +143,10 @@ export default function StudioClientPage() {
     if (format === "json") {
       dataStr = JSON.stringify(generatedSlides, null, 2);
       mimeType = "application/json";
-    } else if (format === "csv") {
+    } else {
       const headers = ["id", "headline", "subtext", "style", "psychologicalTrigger", "reasoning"];
       const csvRows = generatedSlides.map(slide =>
-        headers.map(header => {
-          const value = (slide as any)[header];
-          // Escape double quotes and wrap in double quotes if value contains comma or double quote
-          return `"${String(value).replace(/"/g, '""')}"`;
-        }).join(",")
+        headers.map(header => `"${String((slide as any)[header]).replace(/"/g, '""')}"`).join(",")
       );
       dataStr = [headers.join(","), ...csvRows].join("\n");
       mimeType = "text/csv";
@@ -175,23 +162,11 @@ export default function StudioClientPage() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    toast({
-      title: `Exported to ${format.toUpperCase()}`,
-      description: `Your generated copy has been downloaded as ${filename}.`,
-    });
+    toast({ title: `Exported to ${format.toUpperCase()}`, description: `Your generated copy has been downloaded as ${filename}.` });
   };
 
-  // Clean up the object URL to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      if (screenshotObjectUrl) {
-        URL.revokeObjectURL(screenshotObjectUrl);
-      }
-    };
-  }, [screenshotObjectUrl]);
-
   return (
-    <div className="container py-12 md:py-20">
+    <div className="container w-full mx-auto py-12 md:py-20 px-4">
       <div className="mx-auto max-w-7xl">
         <div className="mb-12">
           <h1 className="text-4xl font-bold tracking-tight mb-4 text-balance">Studio</h1>
@@ -201,44 +176,26 @@ export default function StudioClientPage() {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-2">
-          {/* Left Column: Wizard Form */}
           <div className="space-y-6">
-            <DynamicWizardForm 
-              onGenerate={handleGenerate} 
-              isGenerating={isGenerating} 
-              description="Generate compelling App Store screenshot copy in seconds. Follow the steps to create conversion-optimized titles and subtitles."
-            />
-            {err && <p className="text-sm text-destructive mt-4">{err}</p>}
+            <DynamicWizardForm onGenerate={handleGenerate} isGenerating={isGenerating} />
           </div>
 
-          {/* Right Column: Preview */}
           <div className="space-y-6">
             {generatedSlides && generatedSlides.length > 0 && (
               <div className="flex gap-2 justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleExport("csv")}
-                  disabled={isGenerating}
-                >
+                <Button variant="outline" size="sm" onClick={() => handleExport("csv")} disabled={isGenerating}>
                   <Download className="mr-2 h-4 w-4" /> Export CSV
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleExport("json")}
-                  disabled={isGenerating}
-                >
+                <Button variant="outline" size="sm" onClick={() => handleExport("json")} disabled={isGenerating}>
                   <Download className="mr-2 h-4 w-4" /> Export JSON
                 </Button>
               </div>
             )}
-            <DynamicPreviewPanel 
-              slides={generatedSlides} 
-              isGenerating={isGenerating} 
-              screenshotUrl={screenshotObjectUrl}
-              generationId={generationId}
-            />
+            {generatedSlides && generatedSlides.length > 0 ? (
+              <DynamicPreviewPanel />
+            ) : (
+              <EmptyPreviewPanel />
+            )}
           </div>
         </div>
       </div>

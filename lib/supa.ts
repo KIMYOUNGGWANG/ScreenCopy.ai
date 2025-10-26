@@ -10,7 +10,7 @@ export const createSupaServerClient = () => {
         async get(name: string) {
           return cookies().get(name)?.value
         },
-        set(name: string, value: string, options: CookieOptions) {
+        async set(name: string, value: string, options: CookieOptions) {
           try {
             cookies().set({ name, value, ...options })
           } catch (error) {
@@ -19,7 +19,7 @@ export const createSupaServerClient = () => {
             // user sessions.
           }
         },
-        remove(name: string, options: CookieOptions) {
+        async remove(name: string, options: CookieOptions) {
           try {
             cookies().set({ name, value: '', ...options })
           } catch (error) {

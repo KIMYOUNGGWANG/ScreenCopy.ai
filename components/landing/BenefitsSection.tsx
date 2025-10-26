@@ -3,7 +3,7 @@ import { benefits } from "@/lib/mock"
 
 export function BenefitsSection() {
   return (
-    <section className="container py-20 md:py-32 bg-muted/30">
+    <section className="container w-full mx-auto py-20 md:py-32 px-4">
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-8 md:grid-cols-3">
           {benefits.map((benefit) => (

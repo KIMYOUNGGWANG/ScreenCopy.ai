@@ -26,7 +26,7 @@ export function CustomTabs({ tabsData }: CustomTabsProps) {
 
   return (
     <div className="w-full">
-      <div className="grid w-full grid-cols-4 mb-8 bg-muted text-muted-foreground rounded-lg p-[3px]">
+      <div className="grid w-full grid-cols-2 sm:grid-cols-4 mb-8 bg-muted text-muted-foreground rounded-lg p-[3px]">
         {tabKeys.map((tabKey) => (
           <button
             key={tabKey}

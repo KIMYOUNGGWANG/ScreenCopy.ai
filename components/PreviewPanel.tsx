@@ -1,22 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import NextImage from "next/image"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Copy, ThumbsUp, ThumbsDown } from "lucide-react"
+import { useState, useEffect } from "react";
+import NextImage from "next/image";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Copy, ThumbsUp, ThumbsDown } from "lucide-react";
+import { useStudioStore } from "@/lib/store";
 import type { Slide } from "@/app/studio/studio-client-page";
 
-interface PreviewPanelProps {
-  slides: Slide[] | null
-  isGenerating: boolean
-  screenshotUrl: string | null
-  generationId: string | null
-}
+export function PreviewPanel() {
+  const { slides, isGenerating, screenshotUrl, generationId } = useStudioStore();
 
-export function PreviewPanel({ slides, isGenerating, screenshotUrl, generationId }: PreviewPanelProps) {
   const [activeSlideId, setActiveSlideId] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [ratedSlides, setRatedSlides] = useState<Record<number, number>>({});

@@ -32,7 +32,7 @@ export default function AuthCodeErrorPage() {
                 <Link href="/auth/signin">Try Signing In Again</Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link href="/auth/signup">Create New Account</Link>
+                <Link href="/auth/signin">Sign In</Link>
               </Button>
             </div>
           </CardContent>

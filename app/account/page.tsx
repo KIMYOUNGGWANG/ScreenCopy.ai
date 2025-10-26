@@ -28,7 +28,7 @@ export default function AccountPage() {
         .single();
 
       if (error) {
-        console.error("Error fetching profile:", error);
+        console.error("Error fetching profile:", error.message || error);
         setProfile(null); // Handle error case
       } else {
         setProfile(data as Profile);
@@ -66,7 +66,7 @@ export default function AccountPage() {
   }, [supa]);
 
   return (
-    <div className="container py-12 md:py-20">
+    <div className="container w-full py-12 md:py-20 px-4">
       <div className="mx-auto max-w-2xl">
         {/* Header */}
         <div className="mb-8">

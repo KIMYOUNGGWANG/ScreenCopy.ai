@@ -12,10 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Loader2, User, Target } from "lucide-react";
+import { useStudioStore } from "@/lib/store";
 
-// As per the new plan
 export interface GenerateRequest {
   screenshotFile: File | null;
   appName: string;
@@ -29,22 +29,16 @@ export interface GenerateRequest {
   tonePreference: string;
   keyBenefit: string;
   competitors: string;
+  keywords: string;
+  exclude: string;
 }
 
 interface WizardFormProps {
   onGenerate: (data: GenerateRequest) => void;
-  isGenerating: boolean;
-  description?: string;
 }
 
-const TOTAL_STEPS = 5;
-
-export function WizardForm({
-  onGenerate,
-  isGenerating,
-  description,
-}: WizardFormProps) {
-  const [step, setStep] = useState(1);
+export function WizardForm({ onGenerate }: WizardFormProps) {
+  const { isGenerating } = useStudioStore();
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [formData, setFormData] = useState<GenerateRequest>({
     screenshotFile: null,
@@ -59,229 +53,10 @@ export function WizardForm({
     tonePreference: "professional",
     keyBenefit: "",
     competitors: "",
+    keywords: "",
+    exclude: "",
   });
 
-  const nextStep = () => setStep(prev => Math.min(prev + 1, TOTAL_STEPS));
-  const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
-
-  const renderStep = () => {
-    switch (step) {
-      case 1:
-        return <Step1 formData={formData} setFormData={setFormData} />;
-      case 2:
-        return (
-          <Step2
-            formData={formData}
-            setFormData={setFormData}
-            isCustomCategory={isCustomCategory}
-            setIsCustomCategory={setIsCustomCategory}
-          />
-        );
-      case 3:
-        return <Step3 formData={formData} setFormData={setFormData} />;
-      case 4:
-        return <Step4 formData={formData} setFormData={setFormData} />;
-      case 5:
-        return <Step5 formData={formData} setFormData={setFormData} />;
-      default:
-        return null;
-    }
-  };
-  // const isStep2CustomCategoryEmpty =
-  //   step === 2 &&
-  //   formData.appCategory === "" &&
-  //   (formData.appCategory === "custom" ||
-  //     (formData.appCategory !== "productivity" &&
-  //       formData.appCategory !== "game" &&
-  //       formData.appCategory !== "social" &&
-  //       formData.appCategory !== "health" &&
-  //       formData.appCategory !== "finance" &&
-  //       formData.appCategory !== "education"));
-  const isStep2CustomCategoryEmpty =
-    step === 2 && isCustomCategory && formData.appCategory === "";
-
-  const handleSubmit = () => {
-    onGenerate(formData);
-  };
-
-  const isCurrentStepValid = () => {
-    switch (step) {
-      case 1:
-        return formData.screenshotFile !== null;
-      case 2:
-        return (
-          formData.appName.length > 0 &&
-          formData.appCategory.length > 0 &&
-          !isStep2CustomCategoryEmpty
-        );
-      case 3:
-        return (
-          formData.targetAudience.age.length > 0 &&
-          formData.targetAudience.occupation.length > 0 &&
-          formData.targetAudience.painPoint.length > 0
-        );
-      case 4:
-        return (
-          formData.screenFeature.length > 0 && formData.keyBenefit.length > 0
-        );
-      case 5:
-        return formData.tonePreference.length > 0;
-      default:
-        return false;
-    }
-  };
-
-  return (
-    <Card className="border-border/50">
-      <CardHeader>
-        <CardTitle>
-          Step {step} of {TOTAL_STEPS}
-        </CardTitle>
-        {description && (
-          <p className="text-muted-foreground text-sm pt-2">{description}</p>
-        )}
-        <div className="w-full bg-muted rounded-full h-2 mt-2">
-          <div
-            className="bg-accent h-2 rounded-full transition-all duration-300"
-            style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
-          ></div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="min-h-[300px]">{renderStep()}</div>
-        <div className="flex justify-between pt-6 border-t border-border/50">
-          <Button variant="outline" onClick={prevStep} disabled={step === 1}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back
-          </Button>
-          {step === TOTAL_STEPS ? (
-            <Button
-              onClick={handleSubmit}
-              disabled={isGenerating || !isCurrentStepValid()}
-            >
-              {isGenerating ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              Generate Copy
-            </Button>
-          ) : (
-            <Button onClick={nextStep} disabled={!isCurrentStepValid()}>
-              Next <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-type StepProps = {
-  formData: GenerateRequest;
-  setFormData: React.Dispatch<React.SetStateAction<GenerateRequest>>;
-};
-
-interface Step2Props extends StepProps {
-  isCustomCategory: boolean;
-  setIsCustomCategory: React.Dispatch<React.SetStateAction<boolean>>;
-}
-
-// Step 1: Screenshot Upload
-function Step1({ formData, setFormData }: StepProps) {
-  return (
-    <div className="space-y-4 py-4">
-      <h2 className="text-xl font-semibold">Upload Your Screenshot</h2>
-      <div className="space-y-2">
-        <Label htmlFor="screenshot">Screenshot File *</Label>
-        <Input
-          id="screenshot"
-          type="file"
-          accept="image/*"
-          onChange={e => {
-            const file = e.target.files?.[0] ?? null;
-            setFormData(prev => ({ ...prev, screenshotFile: file }));
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-// Step 2: App Info
-function Step2({
-  formData,
-  setFormData,
-  isCustomCategory,
-  setIsCustomCategory,
-}: Step2Props) {
-
-  const handleCategoryChange = (value: string) => {
-    if (value === "custom") {
-      setIsCustomCategory(true);
-      setFormData(prev => ({ ...prev, appCategory: "" })); // Clear category when switching to custom
-    } else {
-      setIsCustomCategory(false);
-      setFormData(prev => ({ ...prev, appCategory: value }));
-    }
-  };
-
-  return (
-    <div className="space-y-4 py-4">
-      <h2 className="text-xl font-semibold">Tell Us About Your App</h2>
-      <div className="space-y-2">
-        <Label htmlFor="appName">App Name *</Label>
-        <Input
-          id="appName"
-          value={formData.appName}
-          onChange={e =>
-            setFormData(prev => ({ ...prev, appName: e.target.value }))
-          }
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="appCategory">App Category *</Label>
-        {!isCustomCategory ? (
-          <Select
-            value={formData.appCategory}
-            onValueChange={handleCategoryChange}
-          >
-            <SelectTrigger id="appCategory">
-              <SelectValue placeholder="Select a category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="productivity">Productivity</SelectItem>
-              <SelectItem value="game">Game</SelectItem>
-              <SelectItem value="social">Social</SelectItem>
-              <SelectItem value="health">Health & Fitness</SelectItem>
-              <SelectItem value="finance">Finance</SelectItem>
-              <SelectItem value="education">Education</SelectItem>
-              <SelectItem value="custom">Other (please specify)</SelectItem>
-            </SelectContent>
-          </Select>
-        ) : (
-          <Input
-            id="appCategory"
-            value={formData.appCategory}
-            onChange={e =>
-              setFormData(prev => ({ ...prev, appCategory: e.target.value }))
-            }
-            placeholder="Enter custom category"
-          />
-        )}
-        {isCustomCategory && (
-          <Button
-            variant="link"
-            onClick={() => setIsCustomCategory(false)}
-            className="px-0"
-          >
-            Choose from list
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Step 3: Target Audience
-function Step3({ formData, setFormData }: StepProps) {
   const setAudience = (
     field: keyof GenerateRequest["targetAudience"],
     value: string
@@ -291,126 +66,221 @@ function Step3({ formData, setFormData }: StepProps) {
       targetAudience: { ...prev.targetAudience, [field]: value },
     }));
   };
-  return (
-    <div className="space-y-4 py-4">
-      <h2 className="text-xl font-semibold">Who Is This For?</h2>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Target Age *</Label>
-          <Select
-            value={formData.targetAudience.age}
-            onValueChange={v => setAudience("age", v)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="13-17">13-17</SelectItem>
-              <SelectItem value="18-24">18-24</SelectItem>
-              <SelectItem value="25-34">25-34</SelectItem>
-              <SelectItem value="35-44">35-44</SelectItem>
-              <SelectItem value="45+">45+</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>Main User Type *</Label>
-          <Select
-            value={formData.targetAudience.occupation}
-            onValueChange={v => setAudience("occupation", v)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="student">Student</SelectItem>
-              <SelectItem value="professional">Professional</SelectItem>
-              <SelectItem value="parent">Parent</SelectItem>
-              <SelectItem value="freelancer">Freelancer</SelectItem>
-              <SelectItem value="creator">Creator</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label>
-          What problem does this solve for them? (Their Pain Point) *
-        </Label>
-        <Textarea
-          value={formData.targetAudience.painPoint}
-          onChange={e => setAudience("painPoint", e.target.value)}
-          placeholder="e.g., I keep forgetting my tasks and missing deadlines."
-        />
-      </div>
-    </div>
-  );
-}
 
-// Step 4: Screenshot Details
-function Step4({ formData, setFormData }: StepProps) {
-  return (
-    <div className="space-y-4 py-4">
-      <h2 className="text-xl font-semibold">
-        What&apos;s Shown in This Screenshot?
-      </h2>
-      <div className="space-y-2">
-        <Label>Feature Shown *</Label>
-        <Textarea
-          value={formData.screenFeature}
-          onChange={e =>
-            setFormData(prev => ({ ...prev, screenFeature: e.target.value }))
-          }
-          placeholder="e.g., Main dashboard with task list and calendar view."
-        />
-      </div>
-      <div className="space-y-2">
-        <Label>Key Benefit to Highlight *</Label>
-        <Input
-          value={formData.keyBenefit}
-          onChange={e =>
-            setFormData(prev => ({ ...prev, keyBenefit: e.target.value }))
-          }
-          placeholder="e.g., See all your tasks at a glance"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label>Competitors (optional, comma-separated)</Label>
-        <Input
-          value={formData.competitors}
-          onChange={e =>
-            setFormData(prev => ({ ...prev, competitors: e.target.value }))
-          }
-          placeholder="e.g., Todoist, Any.do"
-        />
-      </div>
-    </div>
-  );
-}
+  const handleCategoryChange = (value: string) => {
+    if (value === "custom") {
+      setIsCustomCategory(true);
+      setFormData(prev => ({ ...prev, appCategory: "" }));
+    } else {
+      setIsCustomCategory(false);
+      setFormData(prev => ({ ...prev, appCategory: value }));
+    }
+  };
 
-// Step 5: Tone
-function Step5({ formData, setFormData }: StepProps) {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onGenerate(formData);
+  };
+
   return (
-    <div className="space-y-4 py-4">
-      <h2 className="text-xl font-semibold">Choose Your Tone</h2>
-      <div className="space-y-2">
-        <Label>Tone Preference *</Label>
-        <Select
-          value={formData.tonePreference}
-          onValueChange={value =>
-            setFormData(prev => ({ ...prev, tonePreference: value }))
-          }
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="professional">Professional</SelectItem>
-            <SelectItem value="casual">Casual</SelectItem>
-            <SelectItem value="playful">Playful</SelectItem>
-            <SelectItem value="inspirational">Inspirational</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
+    <Card className="border-border/50">
+      <CardHeader>
+        <CardTitle>Generate Screenshot Copy</CardTitle>
+        <CardDescription>Fill out the details below to get the best results.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Persona Section */}
+          <div className="space-y-6 rounded-lg border p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-shrink-0 bg-muted rounded-full p-2">
+                <User className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <h2 className="text-xl font-semibold">Persona</h2>
+            </div>
+            <p className="text-sm text-muted-foreground -mt-2">
+              Who is your target user? This helps tailor the copy to their needs.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Target Age *</Label>
+                <Select
+                  value={formData.targetAudience.age}
+                  onValueChange={v => setAudience("age", v)}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="13-17">13-17</SelectItem>
+                    <SelectItem value="18-24">18-24</SelectItem>
+                    <SelectItem value="25-34">25-34</SelectItem>
+                    <SelectItem value="35-44">35-44</SelectItem>
+                    <SelectItem value="45+">45+</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Main User Type *</Label>
+                <Select
+                  value={formData.targetAudience.occupation}
+                  onValueChange={v => setAudience("occupation", v)}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="professional">Professional</SelectItem>
+                    <SelectItem value="parent">Parent</SelectItem>
+                    <SelectItem value="freelancer">Freelancer</SelectItem>
+                    <SelectItem value="creator">Creator</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>What problem does this solve for them? (Their Pain Point) *</Label>
+              <Textarea
+                value={formData.targetAudience.painPoint}
+                onChange={e => setAudience("painPoint", e.target.value)}
+                placeholder="e.g., I keep forgetting my tasks and missing deadlines."
+              />
+            </div>
+          </div>
+
+          {/* Goal Section */}
+          <div className="space-y-6 rounded-lg border p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-shrink-0 bg-muted rounded-full p-2">
+                <Target className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <h2 className="text-xl font-semibold">Goal</h2>
+            </div>
+            <p className="text-sm text-muted-foreground -mt-2">
+              What is the core message you want to convey?
+            </p>
+
+            <div className="space-y-2">
+              <Label htmlFor="screenshot">Screenshot File *</Label>
+              <Input
+                id="screenshot"
+                type="file"
+                accept="image/*"
+                onChange={e => {
+                  const file = e.target.files?.[0] ?? null;
+                  setFormData(prev => ({ ...prev, screenshotFile: file }));
+                }}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="appName">App Name *</Label>
+                <Input
+                  id="appName"
+                  value={formData.appName}
+                  onChange={e => setFormData(prev => ({ ...prev, appName: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="appCategory">App Category *</Label>
+                {!isCustomCategory ? (
+                  <Select value={formData.appCategory} onValueChange={handleCategoryChange}>
+                    <SelectTrigger id="appCategory"><SelectValue placeholder="Select a category" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="productivity">Productivity</SelectItem>
+                      <SelectItem value="game">Game</SelectItem>
+                      <SelectItem value="social">Social</SelectItem>
+                      <SelectItem value="health">Health & Fitness</SelectItem>
+                      <SelectItem value="finance">Finance</SelectItem>
+                      <SelectItem value="education">Education</SelectItem>
+                      <SelectItem value="custom">Other (please specify)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="appCategory"
+                    value={formData.appCategory}
+                    onChange={e => setFormData(prev => ({ ...prev, appCategory: e.target.value }))}
+                    placeholder="Enter custom category"
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Feature Shown in Screenshot *</Label>
+              <Textarea
+                value={formData.screenFeature}
+                onChange={e => setFormData(prev => ({ ...prev, screenFeature: e.target.value }))}
+                placeholder="e.g., Main dashboard with task list and calendar view."
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Key Benefit to Highlight *</Label>
+              <Input
+                value={formData.keyBenefit}
+                onChange={e => setFormData(prev => ({ ...prev, keyBenefit: e.target.value }))}
+                placeholder="e.g., See all your tasks at a glance"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Required Keywords (optional, comma-separated)</Label>
+              <Input
+                value={formData.keywords}
+                onChange={e => setFormData(prev => ({ ...prev, keywords: e.target.value }))}
+                placeholder="e.g., simple, fast, integrated"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Content to Exclude (optional, comma-separated)</Label>
+              <Input
+                value={formData.exclude}
+                onChange={e => setFormData(prev => ({ ...prev, exclude: e.target.value }))}
+                placeholder="e.g., complicated, slow, for experts"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tone Preference *</Label>
+                <Select
+                  value={formData.tonePreference}
+                  onValueChange={value => setFormData(prev => ({ ...prev, tonePreference: value }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="professional">Professional</SelectItem>
+                    <SelectItem value="casual">Casual</SelectItem>
+                    <SelectItem value="playful">Playful</SelectItem>
+                    <SelectItem value="inspirational">Inspirational</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Competitors (optional, comma-separated)</Label>
+                <Input
+                  value={formData.competitors}
+                  onChange={e => setFormData(prev => ({ ...prev, competitors: e.target.value }))}
+                  placeholder="e.g., Todoist, Any.do"
+                />
+              </div>
+            </div>
+          </div>
+
+          <Button type="submit" className="w-full" size="lg" disabled={isGenerating}>
+            {isGenerating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              "Generate Copy"
+            )}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
