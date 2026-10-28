@@ -1,55 +1,55 @@
 import type React from "react"
-import type { Metadata } from "next"
-import { GeistSans } from "geist/font/sans"
-import { GeistMono } from "geist/font/mono"
-import { Analytics } from "@vercel/analytics/next"
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
-import { LazyClientComponents } from "@/components/LazyClientComponents"
-import { Suspense } from "react"
-import "./globals.css"
-import { cookies } from "next/headers"
-import { createSupaServerClient } from "@/lib/supa"
-import { ThemeProvider } from "@/components/theme-provider"
+import type { Metadata } from 'next'
+import { Inter as FontSans } from 'next/font/google'
+import { cn } from '@/lib/utils'
+import { ThemeProvider } from '@/components/theme-provider'
+import { Toaster } from '@/components/ui/sonner'
+import { SiteHeader } from '@/components/site-header'
+import './globals.css'
+
+const fontSans = FontSans({
+  subsets: ['latin'],
+  variable: '--font-sans',
+})
 
 export const metadata: Metadata = {
-  title: "SnapScribe - AI-Powered Content Creation",
-  description: "SnapScribe와 함께 스크린샷을 몇 초 만에 매력적인 마케팅 문구로 바꿔보세요. 당신의 AI 기반 콘텐츠 제작 도우미입니다.",
-  generator: "vpost.app",
-  viewport: "width=device-width, initial-scale=1",
+  title: {
+    default: 'ScreenCopy.ai',
+    template: `%s - ScreenCopy.ai`,
+  },
+  description: 'AI가 앱스토어 스크린샷의 마케팅 카피를 10초 만에 생성해주는 서비스',
+  icons: {
+    icon: '/favicon.ico',
+  },
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
-  const supa = createSupaServerClient()
-  const {
-    data: { user },
-  } = await supa.auth.getUser()
-
-  let credits: number | null = null
-  if (user) {
-    const { data } = await supa.from("profiles").select("credits").eq("id", user.id).maybeSingle()
-    credits = data?.credits ?? null
-  }
-
+}: Readonly<{
+  children: React.ReactNode
+}>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <div className="flex min-h-screen flex-col">
-            <Suspense>
-              <SiteHeader credits={credits} />
-            </Suspense>
-            <main className="flex-1">
-              <Suspense>{children}</Suspense>
-            </main>
-            <SiteFooter />
-            <LazyClientComponents />
+    <html lang="ko" suppressHydrationWarning>
+      <body
+        className={cn(
+          'min-h-screen bg-background font-sans antialiased',
+          fontSans.variable
+        )}
+      >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <div className="relative flex min-h-screen flex-col">
+            <SiteHeader />
+            <div className="flex-1">{children}</div>
           </div>
-          <Analytics />
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
   )
 }
+

@@ -12,7 +12,7 @@
 2. `supabase-schema.sql` 파일의 내용을 복사해서 실행
 3. 실행 후 테이블들이 생성되었는지 확인:
    - `profiles`
-   - `generations` 
+   - `generations`
    - `transactions`
    - `screenshot_uploads`
 
@@ -53,10 +53,11 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 OPENAI_API_KEY=your-openai-api-key
 
 # App URL (개발용)
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3001
 ```
 
 ### 환경 변수 찾는 방법:
+
 1. Supabase 대시보드 → **Settings** → **API**
 2. **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
 3. **anon public** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -75,15 +76,17 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 1. Supabase 대시보드 → **Authentication** → **Settings**
 2. **Enable email confirmations** 활성화
-3. **Site URL** 설정: `http://localhost:3000` (개발용)
-4. **Redirect URLs** 추가: `http://localhost:3000/auth/callback`
+3. **Site URL** 설정: `http://localhost:3001` (개발용)
+4. **Redirect URLs** 추가: `http://localhost:3001/auth/callback`
 
 ## 7. 보안 설정
 
 ### 7.1 Row Level Security 확인
+
 - SQL Editor에서 RLS 정책이 올바르게 설정되었는지 확인
 
 ### 7.2 CORS 설정
+
 - Supabase 대시보드 → **Settings** → **API**
 - **Additional redirect URLs**에 개발/프로덕션 URL 추가
 
@@ -97,13 +100,16 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ## 문제 해결
 
 ### Google OAuth 오류
+
 - Redirect URI가 정확한지 확인
 - Google Cloud Console에서 도메인 인증 상태 확인
 
 ### 데이터베이스 연결 오류
+
 - 환경 변수가 올바른지 확인
 - Supabase 프로젝트가 활성화되어 있는지 확인
 
 ### 이메일 인증 문제
+
 - Supabase에서 이메일 템플릿 확인
 - 스팸 폴더 확인

@@ -1,51 +1,34 @@
-import type { Metadata } from "next";
-import { PricingTable } from "@/components/PricingTable"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { createClient } from '@/lib/supabase/server'
+import PricingTable from '@/components/PricingTable'
 
-export const metadata: Metadata = {
-  title: "Pricing | Screenshot Copy Generator",
-  description: "Choose a credit package that fits your needs. Start for free, then pay as you go.",
-};
+export const metadata = {
+  title: '가격',
+  description: 'ScreenCopy.ai 크레딧 패키지를 확인하고 구매하세요.',
+}
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  let profile = null
+  if (user) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('credits')
+      .eq('id', user.id)
+      .single()
+    profile = data
+  }
+
   return (
-    <div className="container w-full mx-auto py-12 md:py-20 px-4">
-      <div className="mx-auto max-w-6xl">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4 text-balance">
-            Simple, Transparent Pricing
-          </h1>
-          <p className="text-lg text-muted-foreground text-pretty">
-            Start free and upgrade when you need more. No hidden fees.
-          </p>
-        </div>
-
-        <div className="mb-16">
-          <PricingTable />
-        </div>
-
-        <div className="mx-auto max-w-3xl">
-          <h2 className="text-3xl font-bold tracking-tight mb-8 text-center">Frequently Asked Questions</h2>
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="cancel">
-              <AccordionTrigger className="text-left">Can I cancel anytime?</AccordionTrigger>
-              <AccordionContent className="text-muted-foreground leading-relaxed">Yes—month-to-month.</AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="teams">
-              <AccordionTrigger className="text-left">Do you support teams?</AccordionTrigger>
-              <AccordionContent className="text-muted-foreground leading-relaxed">
-                Team features are on our roadmap.
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="payment">
-              <AccordionTrigger className="text-left">Is payment secure?</AccordionTrigger>
-              <AccordionContent className="text-muted-foreground leading-relaxed">
-                Cards are processed by Stripe.
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
-      </div>
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+      <h1 className="text-3xl font-bold text-center mb-4">가격 플랜</h1>
+      <p className="text-lg text-muted-foreground text-center mb-12">
+        필요한 만큼만 크레딧을 구매하세요. 만료 기한은 없습니다.
+      </p>
+      <PricingTable currentCredits={profile?.credits || 0} />
     </div>
   )
 }

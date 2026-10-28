@@ -1,46 +1,42 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from 'zod';
-import { supaServer } from "@/lib/supa";
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
-const FeedbackRequestSchema = z.object({
-  generationId: z.string().uuid(),
-  copyIndex: z.number().min(0),
-  rating: z.number(), // e.g., 5 for like, 1 for dislike
-});
+export async function POST(request: Request) {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-export async function POST(req: NextRequest) {
+  if (!user) {
+    return new NextResponse('Unauthorized', { status: 401 })
+  }
+
+  const { generationId, copyIndex, rating } = await request.json()
+
+  if (!generationId || copyIndex === undefined || rating === undefined) {
+    return new NextResponse('Missing required fields', { status: 400 })
+  }
+
   try {
-    // 1. Authenticate user
-    const supabase = await supaServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // 2. Validate request body
-    const body = await req.json();
-    const input = FeedbackRequestSchema.parse(body);
-
-    // 3. Insert feedback into the database
     const { error } = await supabase.from('copy_feedback').insert({
-      generation_id: input.generationId,
+      generation_id: generationId,
       user_id: user.id,
-      copy_index: input.copyIndex,
-      user_rating: input.rating,
-    });
+      copy_index: copyIndex,
+      user_rating: rating,
+    })
 
     if (error) {
-      console.error("Failed to save feedback:", error);
-      throw new Error(error.message);
+      console.error('Error saving feedback:', error)
+      return new NextResponse(`Failed to save feedback: ${error.message}`, {
+        status: 500,
+      })
     }
 
-    return NextResponse.json({ success: true });
-
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid request body', details: error.errors }, { status: 400 });
-    }
-    console.error('Feedback error:', error);
-    return NextResponse.json({ error: 'Failed to save feedback' }, { status: 500 });
+    return new NextResponse('Feedback saved successfully', { status: 200 })
+  } catch (error: any) {
+    console.error('Unexpected error saving feedback:', error)
+    return new NextResponse(`Internal Server Error: ${error.message}`, {
+      status: 500,
+    })
   }
 }

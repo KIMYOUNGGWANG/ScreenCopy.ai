@@ -1,102 +1,104 @@
-import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
-import { supaAdmin } from "@/lib/supa-admin";
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import Stripe from 'stripe'
+import { sendPaymentReceiptEmail } from '@/lib/email' // Import sendPaymentReceiptEmail
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-06-20',
+})
 
-// Maps Stripe Price IDs to the number of credits.
-// TODO: Keep this in sync with your Stripe Products.
-const creditsMap: { [key: string]: number } = {
-  "price_1Pj9YkRpHK3nI4qHeC6a7g2g": 50,
-  "price_1Pj9ZWRpHK3nI4qHnQdKUKb3": 250,
-};
+export async function POST(req: Request) {
+  const supabase = createClient()
+  const body = await req.text()
+  const signature = req.headers.get('stripe-signature')
 
-async function POST(req: NextRequest) {
-  const body = await req.text();
-  const sig = req.headers.get("stripe-signature");
-
-  if (!sig) {
-    console.error("Stripe webhook error: Missing signature");
-    return new NextResponse("Webhook Error: Missing signature", { status: 400 });
+  if (!signature) {
+    return new NextResponse('No stripe-signature header', { status: 400 })
   }
 
-  let event: Stripe.Event;
+  let event: Stripe.Event
 
   try {
-    event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
+    event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    )
   } catch (err: any) {
-    console.error(`Stripe webhook signature verification failed: ${err.message}`);
-    return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
+    console.error(`Webhook Error: ${err.message}`)
+    return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 })
   }
 
-  // Handle the checkout.session.completed event
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
+  switch (event.type) {
+    case 'checkout.session.completed':
+      const session = event.data.object as Stripe.Checkout.Session
+      const userId = session.metadata?.userId
+      const creditsToAdd = parseInt(session.metadata?.credits || '0', 10)
+      const stripePaymentId = session.id
+      const customerEmail = session.customer_details?.email || ''
 
-    try {
-      const { userId } = session.metadata || {};
-      if (!userId) {
-        throw new Error("Webhook Error: No userId in session metadata");
+      if (!userId || !creditsToAdd) {
+        console.error('Missing userId or credits in session metadata')
+        return new NextResponse('Missing metadata', { status: 400 })
       }
 
-      // Retrieve the session with line items to get the price ID
-      const sessionWithLineItems = await stripe.checkout.sessions.retrieve(
-        session.id,
-        { expand: ["line_items"] }
-      );
+      try {
+        // Update user credits
+        const { data: profile, error: fetchError } = await supabase
+          .from('profiles')
+          .select('credits')
+          .eq('id', userId)
+          .single()
 
-      const priceId = sessionWithLineItems.line_items?.data[0]?.price?.id;
-      if (!priceId) {
-        throw new Error(`Webhook Error: Could not find priceId for session ${session.id}`);
-      }
+        if (fetchError || !profile) {
+          console.error('Error fetching profile for credit update:', fetchError)
+          throw new Error('Profile not found or fetch error')
+        }
 
-      const creditsToAdd = creditsMap[priceId];
-      if (creditsToAdd === undefined) {
-        throw new Error(`Webhook Error: No credits mapping found for priceId ${priceId}`);
-      }
+        const newCredits = profile.credits + creditsToAdd
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ credits: newCredits })
+          .eq('id', userId)
 
-      // 1. Add credits to the user's profile
-      const { data: profile, error: profileError } = await supaAdmin
-        .from("profiles")
-        .select("credits")
-        .eq("id", userId)
-        .single();
+        if (updateError) {
+          console.error('Error updating user credits:', updateError)
+          throw new Error('Failed to update user credits')
+        }
 
-      if (profileError) throw new Error(`Failed to retrieve profile for user ${userId}: ${profileError.message}`);
-
-      const newCredits = (profile.credits || 0) + creditsToAdd;
-
-      const { error: updateError } = await supaAdmin
-        .from("profiles")
-        .update({ credits: newCredits })
-        .eq("id", userId);
-
-      if (updateError) throw new Error(`Failed to update credits for user ${userId}: ${updateError.message}`);
-
-      // 2. Log the transaction
-      const { error: transactionError } = await supaAdmin
-        .from("transactions")
-        .insert({
+        // Record transaction
+        const { error: transactionError } = await supabase.from('transactions').insert({
           user_id: userId,
-          amount: (session.amount_total || 0) / 100, // Stripe amount is in cents
+          amount: session.amount_total ? session.amount_total / 100 : 0, // amount_total is in cents
           credits_added: creditsToAdd,
-          stripe_payment_id: session.payment_intent,
-          status: "completed",
-        });
+          stripe_payment_id: stripePaymentId,
+          status: 'completed',
+        })
 
-      if (transactionError) throw new Error(`Failed to log transaction for user ${userId}: ${transactionError.message}`);
+        if (transactionError) {
+          console.error('Error recording transaction:', transactionError)
+          throw new Error('Failed to record transaction')
+        }
 
-      console.log(`Successfully provisioned ${creditsToAdd} credits for user ${userId}`);
+        // Send payment receipt email
+        if (customerEmail) {
+          await sendPaymentReceiptEmail(
+            customerEmail,
+            session.amount_total ? session.amount_total / 100 : 0,
+            creditsToAdd,
+            stripePaymentId
+          )
+        }
 
-    } catch (error: any) {
-      console.error(error.message);
-      // We don't return a 500 here because we don't want Stripe to retry this webhook
-      // if it's a data issue (e.g., missing metadata). We log the error for manual inspection.
-    }
+        console.log(`User ${userId} successfully purchased ${creditsToAdd} credits.`)
+      } catch (dbError: any) {
+        console.error('Database operation failed for webhook:', dbError.message)
+        return new NextResponse(`Database operation failed: ${dbError.message}`, { status: 500 })
+      }
+      break
+    default:
+      console.warn(`Unhandled event type ${event.type}`)
   }
 
-  return new NextResponse("OK", { status: 200 });
+  return new NextResponse('ok', { status: 200 })
 }
-
-export { POST };

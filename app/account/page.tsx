@@ -1,108 +1,63 @@
-"use client"
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
-import { AccountCard } from "@/components/AccountCard"
-import { useEffect, useState } from "react";
-import { supaBrowser } from "@/lib/supa-browser";
-import { User } from "@supabase/supabase-js";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-// Define a type for the profile data
-interface Profile {
-  plan: "free" | "pro";
-  credits: number;
+export const metadata = {
+  title: '계정',
+  description: 'ScreenCopy.ai 계정 정보를 관리하세요.',
 }
 
-export default function AccountPage() {
-  const supa = supaBrowser();
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+export default async function AccountPage() {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  useEffect(() => {
-    const fetchProfile = async (userToFetch: User) => {
-      const { data, error } = await supa
-        .from('profiles')
-        .select('plan, credits')
-        .eq('id', userToFetch.id)
-        .single();
+  if (!user) {
+    redirect('/auth/signin')
+  }
 
-      if (error) {
-        console.error("Error fetching profile:", error.message || error);
-        setProfile(null); // Handle error case
-      } else {
-        setProfile(data as Profile);
-      }
-      setLoading(false);
-    };
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('credits, created_at')
+    .eq('id', user.id)
+    .single()
 
-    const { data: authListener } = supa.auth.onAuthStateChange(async (event, session) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        setLoading(true);
-        await fetchProfile(currentUser);
-      } else {
-        setLoading(false);
-        setProfile(null);
-      }
-    });
-
-    // Initial fetch in case the auth state is already settled
-    supa.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        if (!profile) { // Avoid re-fetching if profile is already there
-          fetchProfile(user);
-        }
-      } else {
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supa]);
+  if (error) {
+    console.error('Error fetching profile:', error)
+    return <div>계정 정보를 불러오는 데 실패했습니다.</div>
+  }
 
   return (
-    <div className="container w-full py-12 md:py-20 px-4">
-      <div className="mx-auto max-w-2xl">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold tracking-tight mb-4 text-balance">Account Settings</h1>
-          <p className="text-lg text-muted-foreground text-pretty">
-            View your plan, manage your data, and control your account preferences
-          </p>
-        </div>
-
-        {/* Account Card */}
-        {loading ? (
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-4 w-64" />
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <Skeleton className="h-24 w-full" />
-              <div className="space-y-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            </CardContent>
-          </Card>
-        ) : profile ? (
-          <AccountCard plan={profile.plan} credits={profile.credits} />
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Please sign in</CardTitle>
-              <CardDescription>Sign in to manage your account.</CardDescription>
-            </CardHeader>
-          </Card>
-        )}
-      </div>
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+      <h1 className="text-3xl font-bold mb-6">계정 설정</h1>
+      <Card className="max-w-lg mx-auto">
+        <CardHeader>
+          <CardTitle>내 프로필</CardTitle>
+          <CardDescription>계정 정보를 확인하고 관리하세요.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">이메일</p>
+            <p className="text-lg">{user.email}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">남은 크레딧</p>
+            <p className="text-lg">{profile?.credits}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">가입일</p>
+            <p className="text-lg">{new Date(profile?.created_at || '').toLocaleDateString('ko-KR')}</p>
+          </div>
+          <div className="flex justify-end">
+            <Button asChild variant="outline">
+              <Link href="/pricing">크레딧 충전</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

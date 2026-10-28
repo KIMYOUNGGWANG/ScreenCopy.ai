@@ -1,112 +1,151 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Check, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState } from 'react'
+import { Check, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
-// TODO: Replace with your actual Stripe Price IDs
-const plans = [
+const tiers = [
   {
-    id: "launch_pack",
-    name: "Launch Pack",
-    price: "$5/mo",
-    description: "Perfect for small projects and occasional use.",
-    features: ["50 generations per month", "1-month credit rollover", "Access to all features"],
-    cta: "Subscribe",
-    priceId: "price_1Pj9YkRpHK3nI4qHeC6a7g2g", // Replace with your actual Price ID from Stripe
-    highlighted: false,
+    name: 'Starter',
+    id: 'starter',
+    href: '#',
+    priceMonthly: 9.99,
+    credits: 10,
+    description: '가볍게 시작하는 당신을 위한 플랜',
+    features: ['10 크레딧', '크레딧 만료 없음', '기본 지원'],
+    featured: false,
+    priceId: 'price_1Pj9YkRpHK3nI4qHeC6a7g2g', // TODO: Replace with your actual Stripe Price ID
   },
   {
-    id: "update_pack",
-    name: "Update Pack",
-    price: "$20/mo",
-    description: "Best value for frequent users and larger projects.",
-    features: ["250 generations per month", "1-month credit rollover", "Access to all features", "Priority support"],
-    cta: "Subscribe",
-    priceId: "price_1Pj9ZWRpHK3nI4qHnQdKUKb3", // Replace with your actual Price ID from Stripe
-    highlighted: true,
+    name: 'Pro',
+    id: 'pro',
+    href: '#',
+    priceMonthly: 39.99,
+    credits: 50,
+    description: '자주 사용하는 전문가를 위한 플랜',
+    features: ['50 크레딧 (20% 할인)', '크레딧 만료 없음', '우선 지원', '베타 기능 접근'],
+    featured: true,
+    priceId: 'price_1Pj9ZWRpHK3nI4qHnQdKUKb3', // TODO: Replace with your actual Stripe Price ID
+  },
+  {
+    name: 'Agency',
+    id: 'agency',
+    href: '#',
+    priceMonthly: 149.99,
+    credits: 200,
+    description: '여러 앱을 관리하는 에이전시를 위한 플랜',
+    features: ['200 크레딧 (25% 할인)', '크레딧 만료 없음', '전담 지원', '팀 협업 기능 (예정)'],
+    featured: false,
+    priceId: 'price_1Pj9aQRpHK3nI4qHnQdKUKb4', // TODO: Replace with your actual Stripe Price ID
   },
 ]
 
-export function PricingTable() {
-  const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null)
-  const [error, setError] = useState("")
+interface PricingTableProps {
+  currentCredits: number
+}
 
-  const handlePurchase = async (priceId: string) => {
-    setLoadingPriceId(priceId)
-    setError("")
+export default function PricingTable({ currentCredits }: PricingTableProps) {
+  const [loading, setLoading] = useState(false)
+
+  const handlePurchase = async (tierName: string, price: number, credits: number, priceId: string) => {
+    setLoading(true)
     try {
-      const res = await fetch("/api/provision", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId }),
+      const response = await fetch('/api/provision', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ priceId, credits }),
       })
 
-      if (!res.ok) {
-        throw new Error("Failed to create checkout session.")
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || '결제 세션 생성에 실패했습니다.')
       }
 
-      const { url } = await res.json()
+      const { url } = await response.json()
       if (url) {
         window.location.href = url
       } else {
-        throw new Error("Could not retrieve checkout URL.")
+        throw new Error('결제 URL을 받아오지 못했습니다.')
       }
-    } catch (e: any) {
-      setError(e?.message ?? "An unknown error occurred.")
-      setLoadingPriceId(null)
+    } catch (error: any) {
+      toast.error('결제 오류', {
+        description: error.message,
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
-      {plans.map((plan) => (
+    <div className="isolate mx-auto grid max-w-md grid-cols-1 gap-8 lg:max-w-5xl lg:grid-cols-3">
+      {tiers.map((tier) => (
         <Card
-          key={plan.id}
-          className={`relative ${plan.highlighted ? "border-accent shadow-lg shadow-accent/20" : "border-border/50"}`}
-        >
-          {plan.highlighted && (
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-              <span className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
-                Most Popular
-              </span>
-            </div>
+          key={tier.id}
+          className={cn(
+            'flex flex-col rounded-3xl p-8 ring-1 ring-gray-200 dark:ring-gray-800',
+            tier.featured ? 'ring-2 ring-primary dark:ring-primary' : ''
           )}
+        >
           <CardHeader>
-            <CardTitle className="text-2xl">{plan.name}</CardTitle>
-            <div className="mt-4">
-              <span className="text-4xl font-bold">{plan.price}</span>
-            </div>
-            <CardDescription className="mt-4 leading-relaxed">{plan.description}</CardDescription>
+            <CardTitle className="flex items-center justify-between gap-x-4">
+              <h3
+                id={tier.id}
+                className={cn(
+                  'text-lg font-semibold leading-8',
+                  tier.featured ? 'text-primary' : 'text-foreground'
+                )}
+              >
+                {tier.name}
+              </h3>
+              {tier.name === 'Pro' && (
+                <p className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold leading-5 text-primary">
+                  인기
+                </p>
+              )}
+            </CardTitle>
+            <CardDescription className="mt-4 text-sm leading-6 text-muted-foreground">
+              {tier.description}
+            </CardDescription>
+            <p className="mt-6 flex items-baseline gap-x-1">
+              <span className="text-4xl font-bold tracking-tight">
+                ${tier.priceMonthly}
+              </span>
+              <span className="text-sm font-semibold leading-6 text-muted-foreground">
+                / 일회성
+              </span>
+            </p>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-3" role="list">
-              {plan.features.map((feature, index) => (
-                <li key={index} className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" aria-hidden="true" />
-                  <span className="text-sm leading-relaxed">{feature}</span>
+          <CardContent className="flex-1">
+            <ul role="list" className="mt-8 space-y-3 text-sm leading-6 text-muted-foreground">
+              {tier.features.map((feature) => (
+                <li key={feature} className="flex gap-x-3">
+                  <Check className="h-6 w-5 flex-none text-primary" aria-hidden="true" />
+                  {feature}
                 </li>
               ))}
             </ul>
           </CardContent>
-          <CardFooter>
-            <Button 
-              className="w-full"
-              variant={plan.highlighted ? "default" : "outline"} 
-              size="lg"
-              onClick={() => handlePurchase(plan.priceId)}
-              disabled={loadingPriceId === plan.priceId}
+          <CardFooter className="mt-6">
+            <Button
+              aria-describedby={tier.id}
+              className={cn(
+                'w-full',
+                tier.featured ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-muted-foreground/10 text-foreground hover:bg-muted-foreground/20'
+              )}
+              onClick={() => handlePurchase(tier.name, tier.priceMonthly, tier.credits, tier.priceId)}
+              disabled={loading}
             >
-              {loadingPriceId === plan.priceId ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              {plan.cta}
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {tier.credits} 크레딧 구매
             </Button>
           </CardFooter>
         </Card>
       ))}
-      {error && <p className="col-span-full text-center text-sm text-destructive">Error: {error}</p>}
     </div>
   )
 }

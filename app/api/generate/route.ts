@@ -1,169 +1,179 @@
-import { NextRequest, NextResponse } from "next/server";
-import OpenAI from 'openai';
-import { z } from 'zod';
-import { supaServer } from "@/lib/supa";
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import OpenAI from 'openai'
 
+// Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-});
+})
 
-// Initialize Upstash Redis and Rate Limiter
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+export async function POST(request: Request) {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-const ratelimit = new Ratelimit({
-  redis: redis,
-  limiter: Ratelimit.slidingWindow(5, "1 m"), // 5 requests per minute
-  analytics: true,
-});
+  if (!user) {
+    return new NextResponse('Unauthorized', { status: 401 })
+  }
 
-// Zod schema for validating the new, detailed request body
-const GenerateRequestSchema = z.object({
-  screenshotUrl: z.string().url(),
-  appName: z.string().min(1),
-  appCategory: z.string().min(1),
-  targetAudience: z.object({
-    age: z.string(),
-    occupation: z.string(),
-    painPoint: z.string(),
-  }),
-  screenFeature: z.string().min(1),
-  tonePreference: z.string().min(1),
-  keyBenefit: z.string().min(1),
-  competitors: z.string().optional(),
-});
+  const {
+    screenshotUrl,
+    appName,
+    category,
+    targetAudience,
+    painPoint,
+    screenDescription,
+    keyBenefit,
+    tone,
+  } = await request.json()
 
-export async function POST(req: NextRequest) {
+  if (!screenshotUrl || !appName || !category || !targetAudience || !screenDescription || !keyBenefit || !tone) {
+    return new NextResponse('Missing required fields', { status: 400 })
+  }
+
+  // 1. Check and deduct credits
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('credits')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    console.error('Error fetching profile:', profileError)
+    return new NextResponse('Failed to fetch user profile', { status: 500 })
+  }
+
+  if (profile.credits <= 0) {
+    return new NextResponse('Insufficient credits', { status: 402 })
+  }
+
+  // Deduct credit before AI call
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({ credits: profile.credits - 1 })
+    .eq('id', user.id)
+
+  if (updateError) {
+    console.error('Error deducting credit:', updateError)
+    // Optionally, revert credit deduction if AI call fails later
+    return new NextResponse('Failed to deduct credit', { status: 500 })
+  }
+
+  let generationId: string | null = null // To store the ID of the new generation record
+
   try {
-    // 1. Authenticate user
-    const supabase = await supaServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // 2. Construct prompt for GPT-4o Vision API
+    const prompt = `
+      You are an expert App Store marketer with 10+ years experience.
 
-    // 2. Rate limit user
-    // const { success } = await ratelimit.limit(user.id);
-    // if (!success) {
-    //   return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
-    // }
+      CONTEXT:
+      - App Name: ${appName}
+      - Category: ${category}
+      - Target Audience: ${targetAudience}
+      - Pain Point: ${painPoint}
+      - Screenshot shows: ${screenDescription}
+      - Key Benefit: ${keyBenefit}
+      - Tone: ${tone}
 
-    // 3. Check credits
-    const { data: profile } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
-    if (!profile || profile.credits < 1) {
-      return NextResponse.json({ error: 'Insufficient credits' }, { status: 402 });
-    }
+      TASK:
+      Analyze this screenshot and create 5 compelling marketing headlines 
+      optimized for App Store conversion.
 
-    // 4. Validate request body
-    const body = await req.json();
-    const input = GenerateRequestSchema.parse(body);
+      REQUIREMENTS:
+      1. Each headline: 6-10 words maximum
+      2. Use emotional triggers
+      3. Focus on BENEFITS not features
+      4. Match the target audience language
+      5. Ensure visual-text harmony
 
-    // 5. Construct the enhanced prompt
-    const competitorsArray = input.competitors ? input.competitors.split(',').map(c => c.trim()) : [];
-    const enhancedPrompt = `You are an expert App Store marketer who has helped apps achieve 50%+ conversion rate increases.
+      PSYCHOLOGICAL TRIGGERS (Use these for each headline, one per headline):
+      - Headline 1: FOMO (Fear of missing out)
+      - Headline 2: Social Proof
+      - Headline 3: Simplicity
+      - Headline 4: Transformation
+      - Headline 5: Status/Exclusivity
 
-CONTEXT:
-- App Name: ${input.appName}
-- Category: ${input.appCategory}
-- Target Audience: ${input.targetAudience.occupation}, ages ${input.targetAudience.age}
-- Their Pain Point: ${input.targetAudience.painPoint}
-- This Screenshot Shows: ${input.screenFeature}
-- Key Benefit: ${input.keyBenefit}
-- Tone: ${input.tonePreference}
-${competitorsArray.length > 0 ? `- Competitors: ${competitorsArray.join(', ')}` : ''}
+      OUTPUT FORMAT (JSON array of objects):
+      [
+        {
+          "headline": "...",
+          "subtext": "...",
+          "style": "bold|subtle|feature|benefit|emotional",
+          "reasoning": "Why this works...",
+          "psychologicalTrigger": "FOMO",
+          "targetMatch": 85,
+          "estimatedImpact": "high"
+        }
+      ]
 
-TASK:
-Analyze this screenshot and create 5 compelling marketing headlines.
+      EXAMPLES OF GREAT APP STORE COPY:
+      - Calm: "Sleep. Meditate. Relax."
+      - Notion: "One workspace. Every team."
+      - Duolingo: "Learn a language for free. Forever."
+    `
 
-REQUIREMENTS:
-1. Each headline must be 6-10 words maximum
-2. Use power words that trigger emotion (discover, transform, unleash, effortless)
-3. Focus on the BENEFIT, not the feature
-4. Make it specific to what's shown in the screenshot
-5. Use the target audience's language (${input.targetAudience.occupation} talk differently than others)
-6. If competitors exist, ensure headlines differentiate from them
-7. Test different psychological triggers:
-   - Headline 1: Fear of missing out (FOMO)
-   - Headline 2: Social proof
-   - Headline 3: Simplicity/ease
-   - Headline 4: Transformation/results
-   - Headline 5: Exclusivity/status
-
-FORMAT:
-Return ONLY a JSON object with a single key "copies" which is an array of objects with this structure:
-{
-  "copies": [
-    {
-      "headline": "Your headline here",
-      "subtext": "Supporting text (10-15 words)",
-      "style": "bold" | "subtle" | "feature" | "benefit" | "emotional",
-      "psychologicalTrigger": "FOMO" | "social proof" | "simplicity" | "transformation" | "status",
-      "reasoning": "Why this works for ${input.targetAudience.occupation}"
-    }
-  ]
-}
-
-EXAMPLES OF GREAT APP STORE COPY:
-- Calm: "Sleep. Meditate. Relax." (Simple, benefit-focused)
-- Headspace: "Meditation made simple" (Addresses pain point)
-- Duolingo: "Learn a language for free. Forever." (Clear value prop)
-
-Now analyze the screenshot and create headlines that convert.`;
-
-    // 6. Call OpenAI API
+    // 3. Call OpenAI Vision API
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: 'gpt-4o',
       messages: [
         {
-          role: "user",
+          role: 'user',
           content: [
-            { type: "text", text: enhancedPrompt },
-            { type: "image_url", image_url: { url: input.screenshotUrl } }
-          ]
-        }
+            { type: 'text', text: prompt },
+            {
+              type: 'image_url',
+              image_url: {
+                url: screenshotUrl,
+                detail: 'high',
+              },
+            },
+          ],
+        },
       ],
-      max_tokens: 2000,
+      response_format: { type: 'json_object' },
       temperature: 0.7,
-      response_format: { type: "json_object" },
-    });
+      max_tokens: 1000,
+    })
 
-    const content = response.choices[0].message.content;
-    if (!content) {
-      throw new Error('OpenAI returned no content.');
+    const generatedContent = response.choices[0].message.content
+    if (!generatedContent) {
+      throw new Error('No content generated by OpenAI.')
     }
-    const generatedJson = JSON.parse(content);
 
-    // 7. Decrement credits and save generation
-    await supabase.from('profiles').update({ credits: profile.credits - 1 }).eq('id', user.id);
-    
-    const { data: generationData, error: generationError } = await supabase
-      .from('generations')
-      .insert({
-        user_id: user.id,
-        screenshot_url: input.screenshotUrl,
-        app_description: `App: ${input.appName}, Feature: ${input.screenFeature}`, // Simplified description for DB
-        target_audience: JSON.stringify(input.targetAudience),
-        generated_copies: generatedJson.copies, // The AI is asked to return a { copies: [...] } object
-        credits_used: 1,
+    const parsedContent = JSON.parse(generatedContent)
+
+    // 4. Save generation details to database
+    const { data: newGeneration, error: insertError } = await supabase.from('generations').insert({
+      user_id: user.id,
+      screenshot_url: screenshotUrl,
+      app_description: appName, // Using appName as a general description for now
+      target_audience: targetAudience,
+      generated_copies: parsedContent,
+      credits_used: 1,
+    }).select('id').single() // Select the ID of the newly inserted row
+
+    if (insertError || !newGeneration) {
+      console.error('Error saving generation:', insertError)
+      // Optionally, revert credit deduction here if saving fails
+      return new NextResponse('Failed to save generation results', { status: 500 })
+    }
+    generationId = newGeneration.id
+
+    return NextResponse.json({ data: parsedContent, generationId })
+  } catch (error: any) {
+    console.error('Error during AI generation:', error)
+    // Revert credit deduction if AI call or parsing fails
+    await supabase
+      .from('profiles')
+      .update({ credits: profile.credits }) // Revert to original credits
+      .eq('id', user.id)
+      .then(({ error: revertError }) => {
+        if (revertError) console.error('Error reverting credits:', revertError)
       })
-      .select('id')
-      .single();
 
-    if (generationError) {
-      throw new Error(`Failed to save generation: ${generationError.message}`);
-    }
-
-    return NextResponse.json({ ...generatedJson, generationId: generationData.id });
-
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid request body', details: error.errors }, { status: 400 });
-    }
-    console.error('Generation error:', error);
-    return NextResponse.json({ error: 'Failed to generate copies' }, { status: 500 });
+    return new NextResponse(`AI generation failed: ${error.message}`, {
+      status: 500,
+    })
   }
 }

@@ -1,53 +1,50 @@
-import { NextRequest, NextResponse } from "next/server";
-import { supaServer } from "@/lib/supa";
-import Stripe from "stripe";
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-06-20',
+})
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return new NextResponse('Unauthorized', { status: 401 })
+  }
+
+  const { priceId, credits } = await req.json()
+
+  if (!priceId || !credits) {
+    return new NextResponse('Missing priceId or credits', { status: 400 })
+  }
+
   try {
-    // 1. Authenticate user
-    const supabase = await supaServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    // 2. Parse request body
-    const rawBody = await req.text();
-    const body = JSON.parse(rawBody);
-    const { priceId } = body;
-    if (!priceId) {
-      return new NextResponse("Price ID is required", { status: 400 });
-    }
-
-    // 3. Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
+      mode: 'payment',
       line_items: [
         {
           price: priceId,
           quantity: 1,
         },
       ],
-      mode: "payment",
-      success_url: `${appUrl}/studio?payment=success`,
-      cancel_url: `${appUrl}/pricing`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/account?success=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?canceled=true`,
       metadata: {
         userId: user.id,
+        credits: credits,
       },
-    });
+      customer_email: user.email,
+    })
 
-    if (!session.url) {
-      throw new Error("Failed to create a checkout session URL.");
-    }
-
-    // 4. Return the session URL
-    return NextResponse.json({ url: session.url });
-
+    return NextResponse.json({ url: session.url })
   } catch (error: any) {
-    console.error("Provisioning error:", error);
-    return new NextResponse(error.message || "Failed to create checkout session", { status: 500 });
+    console.error('Error creating Stripe checkout session:', error)
+    return new NextResponse(`Error creating checkout session: ${error.message}`, {
+      status: 500,
+    })
   }
 }
